@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jogo de Adivinhação</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="number"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 80px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #007700;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Jogo de Adivinhação</h1>
+  <p>Tente adivinhar o número entre 1 e 100</p>
+  
+  <input type="number" id="palpite" min="1" max="100" />
+  <button onclick="chutar()">Chutar!</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    const numeroSecreto = Math.floor(Math.random() * 100) + 1;
+    let tentativas = 0;
+
+    function chutar() {
+      const palpiteInput = document.getElementById('palpite');
+      const resultadoDiv = document.getElementById('resultado');
+      const palpite = Number(palpiteInput.value);
+
+      if (!palpite || palpite < 1 || palpite > 100) {
+        resultadoDiv.textContent = "Digite um número entre 1 e 100.";
+        resultadoDiv.style.color = "red";
+        return;
+      }
+
+      tentativas++;
+
+      if (palpite === numeroSecreto) {
+        resultadoDiv.textContent = `Parabéns! Você acertou em ${tentativas} tentativas. 🎉`;
+        resultadoDiv.style.color = "green";
+      } else if (palpite < numeroSecreto) {
+        resultadoDiv.textContent = "Muito baixo! Tente novamente.";
+        resultadoDiv.style.color = "orange";
+      } else {
+        resultadoDiv.textContent = "Muito alto! Tente novamente.";
+        resultadoDiv.style.color = "orange";
+      }
+
+      palpiteInput.value = "";
+      palpiteInput.focus();
+    }
+  </script>
+
+</body>
+</html>
