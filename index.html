@@ -2,79 +2,172 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Jogo de Adivinhação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jogo de Perguntas - Conhecimentos Gerais</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f8ff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 50px;
-    }
-    h1 {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f4f4f9;
       color: #333;
     }
-    input[type="number"] {
-      padding: 8px;
-      font-size: 16px;
-      width: 80px;
-      margin-right: 10px;
+    h1 {
+      text-align: center;
+    }
+    .pergunta {
+      font-size: 1.2em;
+      margin-bottom: 15px;
+    }
+    .opcoes {
+      list-style: none;
+      padding: 0;
+    }
+    .opcoes li {
+      margin-bottom: 10px;
     }
     button {
-      padding: 8px 12px;
-      font-size: 16px;
+      padding: 10px 15px;
+      font-size: 1em;
       cursor: pointer;
     }
-    #resultado {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #007700;
+    .resultado {
+      font-size: 1.3em;
+      text-align: center;
+      margin-top: 30px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Jogo de Adivinhação</h1>
-  <p>Tente adivinhar o número entre 1 e 100</p>
-  
-  <input type="number" id="palpite" min="1" max="100" />
-  <button onclick="chutar()">Chutar!</button>
+  <h1>Jogo de Perguntas - Conhecimentos Gerais</h1>
 
-  <div id="resultado"></div>
+  <div id="jogo">
+    <div class="pergunta" id="pergunta"></div>
+    <ul class="opcoes" id="opcoes"></ul>
+    <button id="btnProximo" onclick="proximaPergunta()" disabled>Próxima</button>
+  </div>
+
+  <div class="resultado" id="resultado" style="display:none;"></div>
 
   <script>
-    const numeroSecreto = Math.floor(Math.random() * 100) + 1;
-    let tentativas = 0;
-
-    function chutar() {
-      const palpiteInput = document.getElementById('palpite');
-      const resultadoDiv = document.getElementById('resultado');
-      const palpite = Number(palpiteInput.value);
-
-      if (!palpite || palpite < 1 || palpite > 100) {
-        resultadoDiv.textContent = "Digite um número entre 1 e 100.";
-        resultadoDiv.style.color = "red";
-        return;
+    const perguntas = [
+      {
+        pergunta: "Qual é a capital do Brasil?",
+        opcoes: ["Brasília", "São Paulo", "Rio de Janeiro", "Salvador"],
+        resposta: 0
+      },
+      {
+        pergunta: "Quem pintou a Mona Lisa?",
+        opcoes: ["Vincent van Gogh", "Leonardo da Vinci", "Pablo Picasso", "Claude Monet"],
+        resposta: 1
+      },
+      {
+        pergunta: "Qual é o maior planeta do sistema solar?",
+        opcoes: ["Terra", "Júpiter", "Saturno", "Marte"],
+        resposta: 1
+      },
+      {
+        pergunta: "Em que ano o homem pisou na Lua pela primeira vez?",
+        opcoes: ["1965", "1969", "1972", "1959"],
+        resposta: 1
+      },
+      {
+        pergunta: "Qual é o elemento químico representado pelo símbolo 'O'?",
+        opcoes: ["Ouro", "Oxigênio", "Prata", "Osmio"],
+        resposta: 1
+      },
+      {
+        pergunta: "Qual é o idioma oficial do Brasil?",
+        opcoes: ["Espanhol", "Inglês", "Português", "Francês"],
+        resposta: 2
+      },
+      {
+        pergunta: "Quem escreveu 'Dom Quixote'?",
+        opcoes: ["Miguel de Cervantes", "William Shakespeare", "Machado de Assis", "José Saramago"],
+        resposta: 0
+      },
+      {
+        pergunta: "Qual país é conhecido como 'Terra do Sol Nascente'?",
+        opcoes: ["China", "Japão", "Coreia do Sul", "Tailândia"],
+        resposta: 1
+      },
+      {
+        pergunta: "Qual é o símbolo químico da água?",
+        opcoes: ["H2O", "O2", "CO2", "NaCl"],
+        resposta: 0
+      },
+      {
+        pergunta: "Qual é o maior oceano do planeta?",
+        opcoes: ["Atlântico", "Índico", "Ártico", "Pacífico"],
+        resposta: 3
       }
+    ];
 
-      tentativas++;
+    let perguntaAtual = 0;
+    let pontuacao = 0;
 
-      if (palpite === numeroSecreto) {
-        resultadoDiv.textContent = `Parabéns! Você acertou em ${tentativas} tentativas. 🎉`;
-        resultadoDiv.style.color = "green";
-      } else if (palpite < numeroSecreto) {
-        resultadoDiv.textContent = "Muito baixo! Tente novamente.";
-        resultadoDiv.style.color = "orange";
-      } else {
-        resultadoDiv.textContent = "Muito alto! Tente novamente.";
-        resultadoDiv.style.color = "orange";
-      }
+    const perguntaEl = document.getElementById('pergunta');
+    const opcoesEl = document.getElementById('opcoes');
+    const btnProximo = document.getElementById('btnProximo');
+    const resultadoEl = document.getElementById('resultado');
 
-      palpiteInput.value = "";
-      palpiteInput.focus();
+    function carregarPergunta() {
+      btnProximo.disabled = true;
+      const p = perguntas[perguntaAtual];
+      perguntaEl.textContent = `Pergunta ${perguntaAtual + 1}: ${p.pergunta}`;
+      opcoesEl.innerHTML = '';
+
+      p.opcoes.forEach((opcao, index) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.textContent = opcao;
+        button.onclick = () => selecionarResposta(index);
+        li.appendChild(button);
+        opcoesEl.appendChild(li);
+      });
     }
-  </script>
 
+    function selecionarResposta(indiceSelecionado) {
+      const p = perguntas[perguntaAtual];
+      const botoes = opcoesEl.querySelectorAll('button');
+      botoes.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === p.resposta) {
+          btn.style.backgroundColor = '#4CAF50'; // verde para resposta certa
+          btn.style.color = 'white';
+        } 
+        if (idx === indiceSelecionado && idx !== p.resposta) {
+          btn.style.backgroundColor = '#f44336'; // vermelho para resposta errada
+          btn.style.color = 'white';
+        }
+      });
+
+      if (indiceSelecionado === p.resposta) {
+        pontuacao++;
+      }
+
+      btnProximo.disabled = false;
+    }
+
+    function proximaPergunta() {
+      perguntaAtual++;
+      if (perguntaAtual < perguntas.length) {
+        carregarPergunta();
+      } else {
+        mostrarResultado();
+      }
+    }
+
+    function mostrarResultado() {
+      document.getElementById('jogo').style.display = 'none';
+      resultadoEl.style.display = 'block';
+      resultadoEl.textContent = `Você acertou ${pontuacao} de ${perguntas.length} perguntas!`;
+    }
+
+    // Inicia o jogo
+    carregarPergunta();
+  </script>
 </body>
 </html>
