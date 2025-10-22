@@ -3,38 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz de Conhecimentos Gerais</title>
+    <title>Quiz Night Mode - Conhecimentos Gerais</title>
     <style>
+        /* Estilos de Aparência (Dark Mode com Neon) */
+        :root {
+            --bg-color: #1a1a2e; /* Fundo principal escuro */
+            --container-bg: #2c2c44; /* Fundo do container */
+            --text-color: #f0f0f0; /* Texto claro */
+            --primary-color: #00bcd4; /* Ciano Neon para destaque */
+            --secondary-color: #ff5722; /* Laranja para feedback negativo/botão restart */
+            --correct-color: #4CAF50; /* Verde para acerto */
+            --incorrect-color: #f44336; /* Vermelho para erro */
+            --shadow-color: rgba(0, 188, 212, 0.4); /* Sombra do destaque */
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f4f4f9;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.5s;
         }
 
         .quiz-container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: var(--container-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px var(--shadow-color);
             width: 90%;
-            max-width: 600px;
+            max-width: 650px;
+            border: 2px solid var(--primary-color);
         }
 
         h1 {
             text-align: center;
-            color: #333;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            text-shadow: 0 0 8px var(--shadow-color);
+        }
+
+        #question-index {
+            text-align: right;
+            font-size: 0.9em;
+            color: var(--primary-color);
+            margin-bottom: 10px;
         }
 
         #question-text {
-            font-size: 1.2em;
-            margin-bottom: 20px;
-            color: #555;
-            min-height: 50px;
+            font-size: 1.4em;
+            margin-bottom: 30px;
+            color: var(--text-color);
+            font-weight: 500;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--primary-color);
         }
 
         .options-list {
@@ -43,91 +68,136 @@
         }
 
         .options-list li {
-            background-color: #e9ecef;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 5px;
+            background-color: #3e3e5c;
+            margin: 12px 0;
+            padding: 18px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
-            border: 1px solid #ced4da;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #5a5a7d;
         }
 
-        .options-list li:hover {
-            background-color: #dee2e6;
+        .options-list li:hover:not(.disabled) {
+            background-color: #5a5a7d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
         
         /* Estilos para feedback */
         .options-list li.correct {
-            background-color: #d4edda; /* Verde claro */
-            border-color: #c3e6cb;
+            background-color: var(--correct-color);
+            border-color: #388e3c;
+            animation: pulse-correct 0.5s ease-out;
         }
         
         .options-list li.incorrect {
-            background-color: #f8d7da; /* Vermelho claro */
-            border-color: #f5c6cb;
+            background-color: var(--incorrect-color);
+            border-color: #d32f2f;
+            animation: shake 0.5s;
         }
 
         .options-list li.disabled {
-            pointer-events: none; /* Desabilita cliques após resposta */
+            pointer-events: none; 
+            opacity: 0.7;
+        }
+
+        #next-button, #restart-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--bg-color); 
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
         }
 
         #next-button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-top: 20px;
-            font-size: 1em;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            background-color: var(--primary-color);
+            box-shadow: 0 0 15px var(--shadow-color);
         }
 
-        #next-button:hover {
-            background-color: #0056b3;
+        #next-button:hover:not(:disabled) {
+            background-color: #0097a7;
+            transform: translateY(-1px);
         }
 
         #next-button:disabled {
-            background-color: #adb5bd;
+            background-color: #5a5a7d;
+            color: #ccc;
             cursor: default;
+            box-shadow: none;
         }
 
         #result-screen {
             text-align: center;
-            padding: 20px;
-            border: 2px solid #007bff;
+            padding: 30px;
+            border: 1px solid var(--primary-color);
             border-radius: 10px;
             margin-top: 20px;
+            background-color: #3e3e5c;
         }
 
         #result-screen h2 {
-            color: #007bff;
+            color: var(--primary-color);
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        #final-score {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        #restart-button {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+        }
+        
+        #restart-button:hover {
+            background-color: #e64a19;
+            transform: translateY(-1px);
         }
 
         .hidden {
             display: none;
+        }
+
+        /* Animações */
+        @keyframes pulse-correct {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
         }
     </style>
 </head>
 <body>
 
 <div class="quiz-container">
-    <h1>Quiz de Conhecimentos Gerais (10 Perguntas)</h1>
+    <h1>QUIZ NIGHT MODE</h1>
 
     <div id="quiz-game">
         <p id="question-index">Pergunta 1 de 10</p>
         <p id="question-text">Carregando a pergunta...</p>
         <ul id="options-list" class="options-list">
             </ul>
-        <button id="next-button" disabled>Próxima Pergunta</button>
+        <button id="next-button" disabled>Próxima Pergunta &gt;&gt;</button>
     </div>
 
     <div id="result-screen" class="hidden">
-        <h2>Fim do Quiz!</h2>
-        <p id="final-score"></p>
-        <button id="restart-button" onclick="location.reload()">Jogar Novamente</button>
+        <h2>RESULTADO FINAL!</h2>
+        <p id="final-score">Pontuação: 0/10</p>
+        <button id="restart-button" onclick="location.reload()">REINICIAR JOGO</button>
     </div>
 </div>
 
@@ -208,7 +278,7 @@
 
         const currentQuestion = questions[currentQuestionIndex];
         
-        questionIndexElement.textContent = `Pergunta ${currentQuestionIndex + 1} de ${questions.length}`;
+        questionIndexElement.textContent = `[ ${currentQuestionIndex + 1} / ${questions.length} ]`;
         questionTextElement.textContent = currentQuestion.question;
         optionsListElement.innerHTML = '';
 
@@ -235,7 +305,7 @@
             selectedElement.classList.add('correct');
         } else {
             selectedElement.classList.add('incorrect');
-            // Opcional: Destacar a resposta correta
+            // Destaca a resposta correta
             Array.from(optionsListElement.children).forEach(li => {
                 if (li.textContent === correctAnswer) {
                     li.classList.add('correct');
@@ -249,7 +319,7 @@
     function showResults() {
         quizGameElement.classList.add('hidden');
         resultScreenElement.classList.remove('hidden');
-        finalScoreElement.textContent = `Sua pontuação final é ${score} de ${questions.length}.`;
+        finalScoreElement.textContent = `Sua pontuação final é ${score} de ${questions.length} perguntas.`;
     }
 
     nextButton.addEventListener('click', () => {
