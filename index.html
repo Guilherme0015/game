@@ -3,53 +3,189 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jogo de Perguntas - Conhecimentos Gerais</title>
+  <title>Quiz Detalhado - Conhecimentos Gerais</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f4f4f9;
-      color: #333;
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
+    * {
+      box-sizing: border-box;
     }
+
+    body {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-family: 'Montserrat', sans-serif;
+      color: #fff;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #quiz-container {
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 12px;
+      max-width: 600px;
+      width: 100%;
+      padding: 30px 40px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      animation: fadeIn 0.7s ease;
+    }
+
     h1 {
       text-align: center;
+      margin-bottom: 25px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
     }
-    .pergunta {
-      font-size: 1.2em;
-      margin-bottom: 15px;
+
+    #question-number {
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      color: #aab0ff;
+      text-align: right;
     }
-    .opcoes {
+
+    #question {
+      font-size: 1.3rem;
+      margin-bottom: 25px;
+      line-height: 1.4;
+    }
+
+    ul#options {
       list-style: none;
       padding: 0;
+      margin: 0 0 25px 0;
     }
-    .opcoes li {
-      margin-bottom: 10px;
+
+    ul#options li {
+      margin-bottom: 15px;
     }
-    button {
-      padding: 10px 15px;
-      font-size: 1em;
+
+    ul#options button {
+      width: 100%;
+      background: #4a4a8c;
+      border: none;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
       cursor: pointer;
+      transition: background 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .resultado {
-      font-size: 1.3em;
+
+    ul#options button:hover:not(:disabled) {
+      background: #6262b4;
+    }
+
+    ul#options button.correct {
+      background: #28a745 !important; /* verde */
+      box-shadow: 0 0 10px #28a745;
+      cursor: default;
+    }
+
+    ul#options button.wrong {
+      background: #dc3545 !important; /* vermelho */
+      box-shadow: 0 0 10px #dc3545;
+      cursor: default;
+    }
+
+    button#next-btn {
+      background: #6772e5;
+      border: none;
+      padding: 12px 22px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      display: block;
+      margin: 0 auto;
+      transition: background 0.3s ease;
+      box-shadow: 0 4px 10px rgba(103, 114, 229, 0.7);
+    }
+
+    button#next-btn:disabled {
+      background: #a4a6d1;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #score-container {
       text-align: center;
-      margin-top: 30px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    #restart-btn {
+      margin-top: 25px;
+      background: #28a745;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.7);
+      transition: background 0.3s ease;
+    }
+
+    #restart-btn:hover {
+      background: #218838;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Responsivo */
+    @media (max-width: 480px) {
+      #quiz-container {
+        padding: 20px 25px;
+      }
+      #question {
+        font-size: 1.1rem;
+      }
+      ul#options button {
+        padding: 12px 15px;
+        font-size: 0.95rem;
+      }
+      button#next-btn {
+        font-size: 1rem;
+        padding: 10px 18px;
+      }
+      #score-container {
+        font-size: 1.2rem;
+      }
+      #restart-btn {
+        font-size: 1rem;
+        padding: 12px 22px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <h1>Jogo de Perguntas - Conhecimentos Gerais</h1>
-
-  <div id="jogo">
-    <div class="pergunta" id="pergunta"></div>
-    <ul class="opcoes" id="opcoes"></ul>
-    <button id="btnProximo" onclick="proximaPergunta()" disabled>Próxima</button>
+  <div id="quiz-container">
+    <h1>Quiz de Conhecimentos Gerais</h1>
+    <div id="quiz-content">
+      <div id="question-number"></div>
+      <div id="question"></div>
+      <ul id="options"></ul>
+      <button id="next-btn" disabled>Próxima</button>
+    </div>
+    <div id="score-container" style="display:none;">
+      <p id="final-message"></p>
+      <p id="final-score"></p>
+      <button id="restart-btn">Reiniciar Quiz</button>
+    </div>
   </div>
-
-  <div class="resultado" id="resultado" style="display:none;"></div>
 
   <script>
     const perguntas = [
@@ -105,69 +241,108 @@
       }
     ];
 
-    let perguntaAtual = 0;
-    let pontuacao = 0;
+    const questionNumberEl = document.getElementById('question-number');
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const nextBtn = document.getElementById('next-btn');
+    const quizContent = document.getElementById('quiz-content');
+    const scoreContainer = document.getElementById('score-container');
+    const finalMessage = document.getElementById('final-message');
+    const finalScore = document.getElementById('final-score');
+    const restartBtn = document.getElementById('restart-btn');
 
-    const perguntaEl = document.getElementById('pergunta');
-    const opcoesEl = document.getElementById('opcoes');
-    const btnProximo = document.getElementById('btnProximo');
-    const resultadoEl = document.getElementById('resultado');
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let answered = false;
+
+    function startQuiz() {
+      currentQuestionIndex = 0;
+      score = 0;
+      answered = false;
+      scoreContainer.style.display = 'none';
+      quizContent.style.display = 'block';
+      nextBtn.textContent = 'Próxima';
+      carregarPergunta();
+    }
 
     function carregarPergunta() {
-      btnProximo.disabled = true;
-      const p = perguntas[perguntaAtual];
-      perguntaEl.textContent = `Pergunta ${perguntaAtual + 1}: ${p.pergunta}`;
-      opcoesEl.innerHTML = '';
+      answered = false;
+      nextBtn.disabled = true;
+      const perguntaAtual = perguntas[currentQuestionIndex];
+      questionNumberEl.textContent = `Pergunta ${currentQuestionIndex + 1} de ${perguntas.length}`;
+      questionEl.textContent = perguntaAtual.pergunta;
+      optionsEl.innerHTML = '';
 
-      p.opcoes.forEach((opcao, index) => {
+      perguntaAtual.opcoes.forEach((opcao, idx) => {
         const li = document.createElement('li');
         const button = document.createElement('button');
         button.textContent = opcao;
-        button.onclick = () => selecionarResposta(index);
+        button.onclick = () => selecionarResposta(button, idx);
         li.appendChild(button);
-        opcoesEl.appendChild(li);
+        optionsEl.appendChild(li);
       });
     }
 
-    function selecionarResposta(indiceSelecionado) {
-      const p = perguntas[perguntaAtual];
-      const botoes = opcoesEl.querySelectorAll('button');
+    function selecionarResposta(botaoSelecionado, indiceSelecionado) {
+      if (answered) return;
+      answered = true;
+
+      const perguntaAtual = perguntas[currentQuestionIndex];
+      const botoes = optionsEl.querySelectorAll('button');
+
       botoes.forEach((btn, idx) => {
         btn.disabled = true;
-        if (idx === p.resposta) {
-          btn.style.backgroundColor = '#4CAF50'; // verde para resposta certa
-          btn.style.color = 'white';
-        } 
-        if (idx === indiceSelecionado && idx !== p.resposta) {
-          btn.style.backgroundColor = '#f44336'; // vermelho para resposta errada
-          btn.style.color = 'white';
+        if (idx === perguntaAtual.resposta) {
+          btn.classList.add('correct');
+        }
+        if (idx === indiceSelecionado && idx !== perguntaAtual.resposta) {
+          btn.classList.add('wrong');
         }
       });
 
-      if (indiceSelecionado === p.resposta) {
-        pontuacao++;
+      if (indiceSelecionado === perguntaAtual.resposta) {
+        score++;
       }
 
-      btnProximo.disabled = false;
+      nextBtn.disabled = false;
     }
 
-    function proximaPergunta() {
-      perguntaAtual++;
-      if (perguntaAtual < perguntas.length) {
+    nextBtn.addEventListener('click', () => {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < perguntas.length) {
         carregarPergunta();
       } else {
         mostrarResultado();
       }
-    }
+    });
 
     function mostrarResultado() {
-      document.getElementById('jogo').style.display = 'none';
-      resultadoEl.style.display = 'block';
-      resultadoEl.textContent = `Você acertou ${pontuacao} de ${perguntas.length} perguntas!`;
+      quizContent.style.display = 'none';
+      scoreContainer.style.display = 'block';
+
+      finalScore.textContent = `Você acertou ${score} de ${perguntas.length} perguntas.`;
+
+      let mensagem = '';
+      const percentual = (score / perguntas.length) * 100;
+
+      if (percentual === 100) {
+        mensagem = 'Parabéns! Você é um gênio dos conhecimentos gerais! 🎉';
+      } else if (percentual >= 70) {
+        mensagem = 'Muito bem! Você tem um ótimo conhecimento geral!';
+      } else if (percentual >= 40) {
+        mensagem = 'Legal! Mas pode melhorar. Continue estudando!';
+      } else {
+        mensagem = 'Não desanime! A prática leva à perfeição!';
+      }
+
+      finalMessage.textContent = mensagem;
+      nextBtn.textContent = 'Próxima';
     }
 
-    // Inicia o jogo
-    carregarPergunta();
+    restartBtn.addEventListener('click', startQuiz);
+
+    // Começa o quiz automaticamente ao carregar
+    startQuiz();
   </script>
 </body>
 </html>
