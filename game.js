@@ -10,19 +10,22 @@ let statusJogo = "jogando";
 const limiteSuperiorRua = 200;
 const limiteInferiorRua = 380;
 
-// Configurações do Herói (Jogador - Visual Ciano Neon)
+// Configurações do Herói (Lutador Estilizado)
 const jogador = {
     x: 100,
     y: 300,
-    largura: 35,
-    altura: 75,
-    velocidade: 5,
+    largura: 40,
+    altura: 80,
+    velocidade: 5.5,
     vida: 100,
     vidaMaxima: 100,
     atacando: false,
     timerAtaque: 0,
+    comboStatus: 0, // 0: Nenhum, 1: Soco 1, 2: Soco 2, 3: Gancho Final
     direcao: 'direita',
-    cor: '#00ffcc' // Ciano Neon
+    estaTomandoDano: false,
+    timerDano: 0,
+    velX: 0 // Para efeito de empurrão
 };
 
 // Lista de inimigos ativos na fase
@@ -30,75 +33,117 @@ let listaInimigos = [];
 
 // Gerenciador de teclado
 const teclado = {};
-window.addEventListener("keydown", (e) => { teclado[e.key.toLowerCase()] = true; });
+window.addEventListener("keydown", (e) => { 
+    const tecla = e.key.toLowerCase();
+    
+    // Sistema de Combo na tecla Z (só ativa se não estiver travado atacando)
+    if (tecla === 'z' && statusJogo === "jogando" && !jogador.estaTomandoDano) {
+        if (!jogador.atacando) {
+            jogador.atacando = true;
+            jogador.comboStatus = jogador.comboStatus < 3 ? jogador.comboStatus + 1 : 1;
+            jogador.timerAtaque = 10; // Frames do soco
+            processarAtaqueJogador();
+        }
+    }
+    teclado[tecla] = true; 
+});
 window.addEventListener("keyup", (e) => { teclado[e.key.toLowerCase()] = false; });
 
-// Configuração da Fase
+// Configuração da Fase e Criação dos Punks (Inimigos)
 function carregarFase(fase) {
     jogador.x = 100;
     jogador.y = 300;
+    jogador.comboStatus = 0;
+    jogador.atacando = false;
     listaInimigos = [];
     
     let quantidadeInimigos = fase * 2; 
     
     for (let i = 0; i < quantidadeInimigos; i++) {
-        // Cores vibrantes diferentes por fase para os inimigos
-        let corInimigo = fase === 1 ? '#ff0055' : (fase === 2 ? '#ff9900' : '#bd00ff');
+        // Punks têm cores de moicano diferentes dependendo da força
+        let corMoicano = fase === 1 ? '#ff0055' : (fase === 2 ? '#ff9900' : '#bd00ff');
         
         listaInimigos.push({
-            x: 500 + Math.random() * 250,
-            y: limiteSuperiorRua + Math.random() * (limiteInferiorRua - limiteSuperiorRua - 75),
-            largura: 35,
-            altura: 75,
-            velocidade: 1.5 + (fase * 0.4),
-            vida: 30 + (fase * 10),
-            vidaMaxima: 30 + (fase * 10),
+            x: 550 + Math.random() * 200,
+            y: limiteSuperiorRua + Math.random() * (limiteInferiorRua - limiteSuperiorRua - 80),
+            largura: 40,
+            altura: 80,
+            velocidade: 1.3 + (fase * 0.3),
+            vida: 35 + (fase * 10),
+            vidaMaxima: 35 + (fase * 10),
             atacando: false,
             timerAtaque: 0,
             direcao: 'esquerda',
-            cor: corInimigo
+            corMoicano: corMoicano,
+            estaTomandoDano: false,
+            timerDano: 0,
+            velX: 0
         });
     }
 }
 
-// Mecânicas e Movimentação
+// Mecânicas, IA e Física de Combate
 function atualizarFisica() {
     if (statusJogo !== "jogando") return;
 
-    // Movimento do Jogador (Setas)
-    if (teclado["arrowleft"] && jogador.x > 0) {
-        jogador.x -= jogador.velocidade;
-        jogador.direcao = 'esquerda';
-    }
-    if (teclado["arrowright"] && jogador.x < canvas.width - jogador.largura) {
-        jogador.x += jogador.velocidade;
-        jogador.direcao = 'direita';
-    }
-    if (teclado["arrowup"] && jogador.y > limiteSuperiorRua) {
-        jogador.y -= jogador.velocidade;
-    }
-    if (teclado["arrowdown"] && jogador.y < limiteInferiorRua - jogador.altura) {
-        jogador.y += jogador.velocidade;
+    // Reduz efeito de empurrão (Inércia) do Jogador
+    jogador.x += jogador.velX;
+    jogador.velX *= 0.8;
+
+    // Movimento do Jogador (Apenas se não estiver atacando ou paralisado por dano)
+    if (!jogador.atacando && !jogador.estaTomandoDano) {
+        if (teclado["arrowleft"] && jogador.x > 0) {
+            jogador.x -= jogador.velocidade;
+            jogador.direcao = 'esquerda';
+        }
+        if (teclado["arrowright"] && jogador.x < canvas.width - jogador.largura) {
+            jogador.x += jogador.velocidade;
+            jogador.direcao = 'direita';
+        }
+        if (teclado["arrowup"] && jogador.y > limiteSuperiorRua) {
+            jogador.y -= jogador.velocidade;
+        }
+        if (teclado["arrowdown"] && jogador.y < limiteInferiorRua - jogador.altura) {
+            jogador.y += jogador.velocidade;
+        }
     }
 
-    // Ataque Simples (Tecla Z)
-    if (teclado["z"] && !jogador.atacando) {
-        jogador.atacando = true;
-        jogador.timerAtaque = 6; 
-        processarAtaqueJogador();
-    }
-
+    // Timers do Jogador
     if (jogador.atacando) {
         jogador.timerAtaque--;
-        if (jogador.timerAtaque <= 0) jogador.atacando = false;
+        if (jogador.timerAtaque <= 0) {
+            jogador.atacando = false;
+            // Se demorar muito para apertar de novo, quebra o combo
+            setTimeout(() => { if (!jogador.atacando) jogador.comboStatus = 0; }, 200);
+        }
+    }
+    if (jogador.estaTomandoDano) {
+        jogador.timerDano--;
+        if (jogador.timerDano <= 0) jogador.estaTomandoDano = false;
     }
 
-    // IA dos Inimigos
+    // IA e Física dos Inimigos (Punks)
     listaInimigos.forEach(inimigo => {
-        if (inimigo.x < jogador.x - 30) {
+        // Aplica empurrão físico se tomou golpe
+        inimigo.x += inimigo.velX;
+        inimigo.velX *= 0.8;
+
+        // Se o inimigo sair dos limites horizontais pelo empurrão, corrige
+        if (inimigo.x < 0) inimigo.x = 0;
+        if (inimigo.x > canvas.width - inimigo.largura) inimigo.x = canvas.width - inimigo.largura;
+
+        if (inimigo.estaTomandoDano) {
+            inimigo.timerDano--;
+            if (inimigo.timerDano <= 0) inimigo.estaTomandoDano = false;
+            return; // Travado na animação de dor, não age
+        }
+
+        // Perseguição Inteligente
+        let margemX = inimigo.atacando ? 15 : 35;
+        if (inimigo.x < jogador.x - margemX) {
             inimigo.x += inimigo.velocidade;
             inimigo.direcao = 'direita';
-        } else if (inimigo.x > jogador.x + 30) {
+        } else if (inimigo.x > jogador.x + margemX) {
             inimigo.x -= inimigo.velocidade;
             inimigo.direcao = 'esquerda';
         }
@@ -109,13 +154,20 @@ function atualizarFisica() {
             inimigo.y -= inimigo.velocidade;
         }
 
+        // Ataque do Inimigo
         let distX = Math.abs(inimigo.x - jogador.x);
         let distY = Math.abs(inimigo.y - jogador.y);
 
-        if (distX < 40 && distY < 15 && !inimigo.atacando) {
+        if (distX < 45 && distY < 12 && !inimigo.atacando && !jogador.estaTomandoDano) {
             inimigo.atacando = true;
-            inimigo.timerAtaque = 15;
-            jogador.vida -= 6;
+            inimigo.timerAtaque = 20;
+            
+            // Dano no Jogador com leve empurrão
+            jogador.vida -= 7;
+            jogador.estaTomandoDano = true;
+            jogador.timerDano = 12;
+            jogador.velX = inimigo.direcao === 'direita' ? 6 : -6;
+
             if (jogador.vida <= 0) {
                 jogador.vida = 0;
                 statusJogo = "gameover";
@@ -128,8 +180,10 @@ function atualizarFisica() {
         }
     });
 
+    // Remover mortos
     listaInimigos = listaInimigos.filter(i => i.vida > 0);
 
+    // Progresso de Fase
     if (listaInimigos.length === 0) {
         if (faseAtual < totalFases) {
             faseAtual++;
@@ -140,9 +194,10 @@ function atualizarFisica() {
     }
 }
 
+// Processa o Ataque com o Novo Sistema de Combos e Knockback
 function processarAtaqueJogador() {
     listaInimigos.forEach(inimigo => {
-        let alcanceSoco = 50;
+        let alcanceSoco = 55;
         let acertouHorizontal = false;
         
         if (jogador.direcao === 'direita' && inimigo.x > jogador.x && inimigo.x < jogador.x + jogador.largura + alcanceSoco) {
@@ -152,127 +207,92 @@ function processarAtaqueJogador() {
             acertouHorizontal = true;
         }
 
-        let acertouProfundidade = Math.abs(jogador.y - inimigo.y) < 20;
+        let acertouProfundidade = Math.abs(jogador.y - inimigo.y) < 18;
 
         if (acertouHorizontal && acertouProfundidade) {
-            inimigo.vida -= 15;
-        }
-    });
-}
+            inimigo.estaTomandoDano = true;
+            inimigo.timerDano = 15;
 
-// Renderização Estilizada (Estilo Neon/Synthwave)
-function renderizarJogo() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 1. Fundo do Cenário (Céu Noturno Escuro)
-    ctx.fillStyle = "#090a10"; 
-    ctx.fillRect(0, 0, canvas.width, limiteSuperiorRua);
-
-    // 2. Chão Estilizado (Roxo Escuro com Grade Eletrônica)
-    ctx.fillStyle = "#161224"; 
-    ctx.fillRect(0, limiteSuperiorRua, canvas.width, canvas.height - limiteSuperiorRua);
-
-    // Linha do horizonte brilhante (Neon Rosa)
-    ctx.strokeStyle = "#ff007f";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, limiteSuperiorRua);
-    ctx.lineTo(canvas.width, limiteSuperiorRua);
-    ctx.stroke();
-
-    // Linhas de perspectiva estilizadas no chão
-    ctx.strokeStyle = "rgba(255, 0, 127, 0.15)";
-    ctx.lineWidth = 2;
-    for (let i = -200; i <= canvas.width + 200; i += 80) {
-        ctx.beginPath();
-        ctx.moveTo(i, limiteSuperiorRua);
-        ctx.lineTo(i + (i - canvas.width/2), canvas.height);
-        ctx.stroke();
-    }
-
-    // 3. Personagens Ordenados por Eixo Y (Profundidade)
-    const todosOsPersonagens = [jogador, ...listaInimigos];
-    todosOsPersonagens.sort((a, b) => a.y - b.y);
-
-    todosOsPersonagens.forEach(personagem => {
-        // Sombra de luz negra sob os pés
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.beginPath();
-        ctx.ellipse(personagem.x + personagem.largura/2, personagem.y + personagem.altura, 18, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Corpo em formato de Bloco Minimalista Estilizado
-        ctx.fillStyle = personagem.cor;
-        ctx.fillRect(personagem.x, personagem.y, personagem.largura, personagem.altura);
-        
-        // Detalhe de "Olhos Visor" brilhantes para dar estilo
-        ctx.fillStyle = "#ffffff";
-        if (personagem.direcao === 'direita') {
-            ctx.fillRect(personagem.x + personagem.largura - 12, personagem.y + 12, 10, 4);
-        } else {
-            ctx.fillRect(personagem.x + 2, personagem.y + 12, 10, 4);
-        }
-
-        // Punho de Ataque Neon Elétrico
-        if (personagem.atacando) {
-            ctx.fillStyle = "#ffffff";
-            if (personagem.direcao === 'direita') {
-                ctx.fillRect(personagem.x + personagem.largura, personagem.y + 22, 15, 12);
+            // Define dano e empurrão com base no soco atual do combo
+            let direcaoForca = jogador.direcao === 'direita' ? 1 : -1;
+            
+            if (jogador.comboStatus === 3) {
+                // Gancho Final: Alto dano e grande empurrão
+                inimigo.vida -= 20;
+                inimigo.velX = direcaoForca * 15; 
             } else {
-                ctx.fillRect(personagem.x - 15, personagem.y + 22, 15, 12);
+                // Socos normais (1 e 2): Dano padrão e leve travada
+                inimigo.vida -= 10;
+                inimigo.velX = direcaoForca * 5;
             }
         }
-
-        // Barras de Vida Simples sobre a cabeça
-        ctx.fillStyle = "rgba(255,255,255,0.1)";
-        ctx.fillRect(personagem.x, personagem.y - 12, personagem.largura, 4);
-        ctx.fillStyle = personagem.cor;
-        ctx.fillRect(personagem.x, personagem.y - 12, personagem.largura * (personagem.vida / personagem.vidaMaxima), 4);
     });
-
-    // 4. INTERFACE DO USUÁRIO (UI Neon)
-    ctx.fillStyle = "#00ffcc";
-    ctx.font = "bold 14px 'Courier New'";
-    ctx.fillText(`STAGE 0${faseAtual}`, 25, 35);
-    ctx.fillStyle = "#8a8da4";
-    ctx.fillText(`FOES: ${listaInimigos.length}`, 25, 55);
-
-    // Barra de Vida Principal do Player (Design Limpo Superior Direito)
-    ctx.fillStyle = "#161224";
-    ctx.fillRect(550, 20, 220, 18);
-    ctx.fillStyle = "#00ffcc";
-    ctx.fillRect(550, 20, 220 * (jogador.vida / jogador.vidaMaxima), 18);
-    ctx.strokeStyle = "#ff007f";
-    ctx.strokeRect(550, 20, 220, 18);
-    ctx.fillStyle = "#0d0e15";
-    ctx.font = "bold 11px Arial";
-    ctx.fillText("P1 LIFE", 560, 33);
-
-    // Telas de Fim de Jogo Estilizadas
-    if (statusJogo === "gameover") {
-        ctx.fillStyle = "rgba(13, 14, 21, 0.95)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#ff0055";
-        ctx.font = "bold 36px 'Courier New'";
-        ctx.fillText("P1 DEFEATED", 280, 210);
-    }
-
-    if (statusJogo === "vitoria") {
-        ctx.fillStyle = "rgba(13, 14, 21, 0.95)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#00ffcc";
-        ctx.font = "bold 32px 'Courier New'";
-        ctx.fillText("STREETS CLEARED", 250, 200);
-    }
 }
 
-// Loop do Jogo
-function loopJogo() {
-    atualizarFisica();
-    renderizarJogo();
-    requestAnimationFrame(loopJogo);
-}
+// Desenha Personagens Vetoriais Identificáveis
+function desenharPersonagem(ctx, p, tipo) {
+    ctx.save();
+    
+    // Inverte o desenho caso esteja olhando para a esquerda
+    if (p.direcao === 'esquerda') {
+        ctx.translate(p.x + p.largura/2, p.y + p.altura/2);
+        ctx.scale(-1, 1);
+        ctx.translate(-(p.x + p.largura/2), -(p.y + p.altura/2));
+    }
 
-// Início
-carregarFase(faseAtual);
-loopJogo();
+    let x = p.x;
+    let y = p.y;
+
+    // Se tomou dano, pisca em vermelho
+    if (p.estaTomandoDano && Math.floor(Date.now() / 50) % 2 === 0) {
+        ctx.fillStyle = "#ff3333";
+        ctx.fillRect(x, y, p.largura, p.altura);
+        ctx.restore();
+        return;
+    }
+
+    if (tipo === 'jogador') {
+        // --- DESIGN DO HERÓI (Jaqueta azul, calça jeans e bandana) ---
+        // Pernas (Jeans)
+        ctx.fillStyle = "#2b5cb3";
+        ctx.fillRect(x + 8, y + 45, 10, 35);
+        ctx.fillRect(x + 22, y + 45, 10, 35);
+        // Sapatos
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x + 6, y + 74, 13, 6);
+        ctx.fillRect(x + 21, y + 74, 13, 6);
+        // Tronco (Jaqueta Aberta)
+        ctx.fillStyle = "#1a3c80";
+        ctx.fillRect(x + 5, y + 18, 30, 28);
+        ctx.fillStyle = "#ffffff"; // Camiseta interna
+        ctx.fillRect(x + 13, y + 18, 14, 28);
+        // Cabeça e Pele
+        ctx.fillStyle = "#ffdbac";
+        ctx.fillRect(x + 12, y + 2, 16, 16);
+        // Bandana Vermelha
+        ctx.fillStyle = "#ff0044";
+        ctx.fillRect(x + 10, y, 20, 5); 
+        ctx.fillRect(x + 8, y + 3, 5, 5); // Ponta amarrada
+        // Braço / Soco
+        ctx.fillStyle = "#1a3c80";
+        if (p.atacando) {
+            ctx.fillStyle = "#ffdbac"; // Mão estendida
+            if (p.comboStatus === 3) { // Gancho para cima
+                ctx.fillRect(x + 28, y - 2, 14, 14);
+            } else { // Soco direto
+                ctx.fillRect(x + 28, y + 18, 20, 12);
+            }
+        } else {
+            ctx.fillRect(x + 28, y + 18, 10, 20); // Braço em repouso
+        }
+
+    } else {
+        // --- DESIGN DO INIMIGO (Punk de Moicano) ---
+        // Pernas (Calça Rasgada)
+        ctx.fillStyle = "#333333";
+        ctx.fillRect(x + 8, y + 45, 10, 35);
+        ctx.fillRect(x + 22, y + 45, 10, 35);
+        // Botas escuras
+        ctx.fillStyle = "#111111";
+        ctx.fillRect(x + 6, y + 74, 12, 7);
+        ctx.fillRect(x + 22, y + 74, 12, 7);
