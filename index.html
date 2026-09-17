@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo de Saltar Obstáculos</title>
+    <title>Jogo de Saltar Obstáculos - Cyber Edition</title>
     <style>
         * {
             margin: 0;
@@ -17,244 +17,312 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #222;
-            font-family: 'Arial', sans-serif;
-            color: white;
+            background-color: #0b0c10;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
             overflow: hidden;
             user-select: none;
         }
 
+        /* Painel de pontuação moderno */
         #placar {
-            margin-bottom: 10px;
-            font-size: 20px;
+            margin-bottom: 20px;
+            font-size: 22px;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #00d2ff;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
         }
 
+        #fase, #itens {
+            color: #00d2ff;
+        }
+
+        /* Cenário com efeito Neon e Gradiente Animado */
         #cenario {
             position: relative;
             width: 600px;
             height: 250px;
-            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
-            border-bottom: 15px solid #4CAF50;
+            background: linear-gradient(180deg, #1f1f38 0%, #0d0d1a 100%);
+            border-bottom: 12px solid #00ff88;
             overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            cursor: pointer; /* Mostra que a tela é clicável */
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2), inset 0 0 40px rgba(0,0,0,0.6);
+            cursor: pointer;
         }
 
+        /* Estrelas de fundo piscando */
+        .fundo-efeito {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(white 1px, transparent 0);
+            background-size: 40px 40px;
+            opacity: 0.15;
+        }
+
+        /* Personagem: Cubo Cyber Neon com sombra interna */
         #personagem {
             position: absolute;
             bottom: 0;
             left: 50px;
             width: 40px;
             height: 40px;
-            background-color: #FF5722;
-            border-radius: 4px;
-            transition: bottom 0.1s ease-out; /* Suporte extra para movimento */
+            background: linear-gradient(135deg, #ff007f, #ff0055);
+            border-radius: 8px;
+            box-shadow: 0 0 15px #ff007f, inset 0 0 8px rgba(255,255,255,0.6);
+            transition: bottom 0.1s ease-out;
         }
 
+        /* Animação do Pulo (Suavizada) */
         .pulo {
-            animation: pular 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: pular 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
+        /* Obstáculo: Espinho de energia cônico */
         #obstaculo {
             position: absolute;
             bottom: 0;
             left: 600px;
             width: 25px;
             height: 45px;
-            background-color: #333;
-            border-radius: 4px;
+            background: linear-gradient(0deg, #ff3333, #ff0000);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            box-shadow: 0 0 15px #ff3333;
+            filter: drop-shadow(0px 0px 8px #ff3333);
         }
 
+        /* Item: Estrela de Ouro Brilhante */
         #item {
             position: absolute;
             bottom: 100px;
             left: 800px;
-            width: 20px;
-            height: 20px;
-            background-color: #FFD700;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #ffe600, #ffb300);
             clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            filter: drop-shadow(0 0 8px #ffe600);
+            animation: girarItem 2s linear infinite;
         }
 
+        /* Tela de Game Over estilizada */
         #mensagem-gameover {
             display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
-            padding: 20px;
-            border-radius: 8px;
+            background: rgba(15, 15, 25, 0.95);
+            border: 2px solid #ff0055;
+            padding: 25px;
+            border-radius: 16px;
             text-align: center;
-            width: 220px;
+            width: 280px;
             z-index: 10;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.4);
+        }
+
+        #mensagem-gameover h2 {
+            color: #ff0055;
+            font-size: 26px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #mensagem-gameover p {
+            font-size: 14px;
+            color: #ccc;
         }
 
         #mensagem-gameover button {
-            margin-top: 12px;
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
+            margin-top: 18px;
+            padding: 10px 20px;
+            background: linear-gradient(90deg, #00ff88, #00b361);
+            color: #000;
             border: none;
-            border-radius: 4px;
+            border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
-        }
-
-        #instrucoes {
-            margin-top: 15px;
             font-size: 14px;
-            color: #aaa;
-            text-align: center;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
+        #mensagem-gameover button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.6);
+        }
+
+        /* Instruções de jogo discretas */
+        #instrucoes {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        #instrucoes code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #00d2ff;
+        }
+
+        /* Animações CSS */
         @keyframes pular {
-            0% { bottom: 0; }
-            50% { bottom: 130px; }
-            100% { bottom: 0; }
+            0% { bottom: 0; transform: scaleY(1); }
+            10% { transform: scaleY(0.85); } /* Efeito de compressão ao pegar impulso */
+            50% { bottom: 140px; transform: scaleY(1) rotate(45deg); } /* Gira levemente no ar */
+            90% { transform: scaleY(0.9); }
+            100% { bottom: 0; transform: scaleY(1) rotate(0deg); }
+        }
+
+        @keyframes girarItem {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.15); } /* Pulsa levemente enquanto gira */
+            100% { transform: rotate(360deg) scale(1); }
         }
     </style>
 </head>
 <body>
 
-    <div id="placar">Fase: <span id="fase">1</span> | Itens: <span id="itens">0</span>/5</div>
+    <div id="placar">FASE: <span id="fase">1</span> &nbsp;|&nbsp; ITENS: <span id="itens">0</span>/5</div>
 
     <div id="cenario">
+        <div class="fundo-efeito"></div>
         <div id="personagem"></div>
         <div id="obstaculo"></div>
         <div id="item"></div>
 
         <div id="mensagem-gameover">
-            <h2>Game Over!</h2>
-            <p>Você bateu no obstáculo.</p>
+            <h2>Game Over</h2>
+            <p>Você colidiu com o espinho!</p>
             <button id="btn-reiniciar">Jogar Novamente</button>
         </div>
     </div>
 
-    <div id="instrucoes">Pressione **Espaço**, **Seta para Cima** ou **Clique no cenário** para pular.</div>
+    <div id="instrucoes">Pressione <code>Espaço</code>, <code>Seta para Cima</code> ou <code>Clique no cenário</code> para saltar.</div>
 
-    <script>
-        // Executa apenas quando toda a página estiver 100% carregada
-        window.addEventListener('load', () => {
-            const personagem = document.getElementById('personagem');
-            const obstaculo = document.getElementById('obstaculo');
-            const item = document.getElementById('item');
-            const txtFase = document.getElementById('fase');
-            const txtItens = document.getElementById('itens');
-            const msgGameOver = document.getElementById('mensagem-gameover');
-            const btnReiniciar = document.getElementById('btn-reiniciar');
-            const cenario = document.getElementById('cenario');
+<script>
+window.addEventListener('load', () => {
+    const personagem = document.getElementById('personagem');
+    const obstaculo = document.getElementById('obstaculo');
+    const item = document.getElementById('item');
+    const txtFase = document.getElementById('fase');
+    const txtItens = document.getElementById('itens');
+    const msgGameOver = document.getElementById('mensagem-gameover');
+    const btnReiniciar = document.getElementById('btn-reiniciar');
+    const cenario = document.getElementById('cenario');
 
-            let jogando = true;
-            let qtdItens = 0;
-            let faseAtual = 1;
-            let velocidade = 5;
+    let jogando = true;
+    let qtdItens = 0;
+    let faseAtual = 1;
+    let velocidade = 5;
+    let obstaculoX = 600;
+    let itemX = 900;
 
-            let obstaculoX = 600;
-            let itemX = 900; 
+    window.addEventListener('keydown', (event) => {
+        if ((event.code === 'Space' || event.code === 'ArrowUp') && jogando) {
+            event.preventDefault();
+            pular();
+        }
+    });
 
-            // Ouvinte de teclado global ativo
-            window.addEventListener('keydown', (event) => {
-                if ((event.code === 'Space' || event.code === 'ArrowUp') && jogando) {
-                    event.preventDefault(); 
-                    pular();
-                }
-            });
+    cenario.addEventListener('click', (event) => {
+        if (jogando && event.target !== btnReiniciar) {
+            pular();
+        }
+    });
 
-            // Ouvinte de clique direto no cenário para pular
-            cenario.addEventListener('click', (event) => {
-                if (jogando && event.target !== btnReiniciar) {
-                    pular();
-                }
-            });
+    btnReiniciar.addEventListener('click', (event) => {
+        event.stopPropagation();
+        reiniciarJogo();
+    });
 
-            // Ouvinte do botão reiniciar
-            btnReiniciar.addEventListener('click', (event) => {
-                event.stopPropagation(); // Evita ativar o pulo ao clicar no botão
-                reiniciarJogo();
-            });
+    function pular() {
+        if (!personagem.classList.contains('pulo')) {
+            personagem.classList.add('pulo');
+            setTimeout(() => {
+                personagem.classList.remove('pulo');
+            }, 550); // Ajustado para bater com o tempo da nova animação CSS
+        }
+    }
 
-            function pular() {
-                if (!personagem.classList.contains('pulo')) {
-                    personagem.classList.add('pulo');
-                    setTimeout(() => {
-                        personagem.classList.remove('pulo');
-                    }, 600);
-                }
-            }
+    function loopJogo() {
+        if (!jogando) return;
 
-            function loopJogo() {
-                if (!jogando) return;
+        // Movimentação do obstáculo
+        obstaculoX -= velocidade;
+        if (obstaculoX < -40) {
+            obstaculoX = 650 + Math.random() * 250;
+        }
+        obstaculo.style.left = obstaculoX + 'px';
 
-                // Movimentação do obstáculo
-                obstaculoX -= velocidade;
-                if (obstaculoX < -40) {
-                    obstaculoX = 650 + Math.random() * 250;
-                }
-                obstaculo.style.left = obstaculoX + 'px';
+        // Movimentação do item
+        itemX -= velocidade;
+        if (itemX < -40) {
+            itemX = 750 + Math.random() * 350;
+            item.style.display = 'block';
+        }
+        item.style.left = itemX + 'px';
 
-                // Movimentação do item
-                itemX -= velocidade;
-                if (itemX < -40) {
-                    itemX = 750 + Math.random() * 350;
-                    item.style.display = 'block';
-                }
-                item.style.left = itemX + 'px';
+        // Detecção de altura em tempo real
+        let personagemBottom = parseFloat(window.getComputedStyle(personagem).getPropertyValue('bottom')) || 0;
 
-                // Detecção de altura em tempo real
-                let personagemBottom = parseFloat(window.getComputedStyle(personagem).getPropertyValue('bottom')) || 0;
-                
-                // Colisão com Obstáculo (Ajustada para o tamanho exato dos blocos)
-                if (obstaculoX > 45 && obstaculoX < 85 && personagemBottom < 45) {
-                    gameOver();
-                    return; 
-                }
+        // Colisão com Obstáculo 
+        if (obstaculoX > 45 && obstaculoX < 85 && personagemBottom < 45) {
+            gameOver();
+            return;
+        }
 
-                // Colisão com o Item
-                if (itemX > 45 && itemX < 85 && personagemBottom > 60 && item.style.display !== 'none') {
-                    item.style.display = 'none';
-                    coletarItem();
-                }
+        // Colisão com o Item
+        if (itemX > 45 && itemX < 85 && personagemBottom > 60 && item.style.display !== 'none') {
+            item.style.display = 'none';
+            coletarItem();
+        }
 
-                requestAnimationFrame(loopJogo);
-            }
+        requestAnimationFrame(loopJogo);
+    }
 
-            function coletarItem() {
-                qtdItens++;
-                if (qtdItens >= 5) {
-                    faseAtual++;
-                    qtdItens = 0;
-                    velocidade += 1.5;
-                }
-                txtFase.innerText = faseAtual;
-                txtItens.innerText = qtdItens;
-            }
+    function coletarItem() {
+        qtdItens++;
+        if (qtdItens >= 5) {
+            faseAtual++;
+            qtdItens = 0;
+            velocidade += 1.5;
+        }
+        txtFase.innerText = faseAtual;
+        txtItens.innerText = qtdItens;
+    }
 
-            function gameOver() {
-                jogando = false;
-                msgGameOver.style.display = 'block';
-            }
+    function gameOver() {
+        jogando = false;
+        msgGameOver.style.display = 'block';
+    }
 
-            function reiniciarJogo() {
-                jogando = true;
-                qtdItens = 0;
-                faseAtual = 1;
-                velocidade = 5;
-                obstaculoX = 600;
-                itemX = 900;
-                
-                txtFase.innerText = faseAtual;
-                txtItens.innerText = qtdItens;
-                msgGameOver.style.display = 'none';
-                item.style.display = 'block';
-                
-                loopJogo();
-            }
+    function reiniciarJogo() {
+        jogando = true;
+        qtdItens = 0;
+        faseAtual = 1;
+        velocidade = 5;
+        obstaculoX = 600;
+        itemX = 900;
+        txtFase.innerText = faseAtual;
+        txtItens.innerText = qtdItens;
+        msgGameOver.style.display = 'none';
+        item.style.display = 'block';
+        loopJogo();
+    }
 
-            // Início imediato do fluxo
-            loopJogo();
-        });
-    </script>
+    loopJogo();
+});
+</script>
 </body>
 </html>
