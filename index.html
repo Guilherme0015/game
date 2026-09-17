@@ -3,24 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Street Fight - Beat 'Em Up</title>
-    <!-- Vincula o arquivo de estilização externa -->
+    <title>Neon Alley Fight</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="container-jogo">
-        <!-- Área de renderização do jogo -->
+    <h1>NEON ALLEY FIGHT</h1>
+    <div id="gameContainer">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
-        
-        <!-- Painel informativo de comandos -->
-        <div class="controles-info">
-            Movimentação: <span class="tecla">←</span> <span class="tecla">→</span> <span class="tecla">↑</span> <span class="tecla">↓</span> | 
-            Atacar/Socar: <span class="tecla">Z</span>
-        </div>
+    </div>
+    <div class="instructions">
+        Controles: Mover <span class="key">←</span> <span class="key">→</span> | Soco <span class="key">Z</span> | Pular <span class="key">X</span>
     </div>
 
-    <!-- O "?v=2" no final força o navegador a atualizar o código e sumir com os blocos -->
-    <script src="game.js?v=2"></script>
+    <script src="game.js"></script>
 </body>
 </html>

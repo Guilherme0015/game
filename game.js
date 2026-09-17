@@ -1,309 +1,314 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-// Configurações do Progresso do Jogo
-let faseAtual = 1;
-const totalFases = 3;
-let statusJogo = "jogando"; 
-
-// Limites da rua (profundidade estilizada)
-const limiteSuperiorRua = 210;
-const limiteInferiorRua = 390;
-
-// Configurações do Herói (Lutador Ninja/Marcial)
-const jogador = {
-    x: 100,
-    y: 300,
-    largura: 50,
-    altura: 70,
-    velocidade: 6,
-    vida: 100,
-    vidaMaxima: 100,
-    atacando: false,
-    timerAtaque: 0,
-    comboStatus: 0, 
-    direcao: 'direita',
-    estaTomandoDano: false,
-    timerDano: 0,
-    velX: 0 
+// Estado do Jogo
+const game = {
+    gravity: 0.6,
+    floorY: 340,
+    score: 0,
+    wave: 1,
+    gameOver: false
 };
 
-// Lista de inimigos ativos na fase
-let listaInimigos = [];
+// Teclas pressionadas
+const keys = {
+    ArrowLeft: false,
+    ArrowRight: false,
+    z: false,
+    x: false
+};
 
-// Gerenciador de teclado
-const teclado = {};
-window.addEventListener("keydown", (e) => { 
-    const tecla = e.key.toLowerCase();
-    
-    // Ataque na tecla Z com combo
-    if (tecla === 'z' && statusJogo === "jogando" && !jogador.estaTomandoDano) {
-        if (!jogador.atacando) {
-            jogador.atacando = true;
-            jogador.comboStatus = jogador.comboStatus < 3 ? jogador.comboStatus + 1 : 1;
-            jogador.timerAtaque = 12; 
-            processarAtaqueJogador();
-        }
-    }
-    teclado[tecla] = true; 
-});
-window.addEventListener("keyup", (e) => { teclado[e.key.toLowerCase()] = false; });
-
-// Configuração da Fase e Criação dos Inimigos
-function carregarFase(fase) {
-    jogador.x = 100;
-    jogador.y = 300;
-    jogador.comboStatus = 0;
-    jogador.atacando = false;
-    listaInimigos = [];
-    
-    let quantidadeInimigos = fase * 2; 
-    
-    for (let i = 0; i < quantidadeInimigos; i++) {
-        listaInimigos.push({
-            x: 600 + Math.random() * 180,
-            y: limiteSuperiorRua + Math.random() * (limiteInferiorRua - limiteSuperiorRua - 70),
-            largura: 50,
-            altura: 70,
-            velocidade: 1.5 + (fase * 0.4),
-            vida: 35 + (fase * 10),
-            vidaMaxima: 35 + (fase * 10),
-            atacando: false,
-            timerAtaque: 0,
-            direcao: 'esquerda',
-            estaTomandoDano: false,
-            timerDano: 0,
-            velX: 0
-        });
-    }
-}
-
-// Mecânicas, IA e Física de Combate
-function atualizarFisica() {
-    if (statusJogo !== "jogando") return;
-
-    // Física de empurrão do Jogador
-    jogador.x += jogador.velX;
-    jogador.velX *= 0.85;
-    if (jogador.x < 0) jogador.x = 0;
-    if (jogador.x > canvas.width - jogador.largura) jogador.x = canvas.width - jogador.largura;
-
-    // Movimentação livre do Jogador
-    if (!jogador.atacando && !jogador.estaTomandoDano) {
-        if (teclado["arrowleft"] && jogador.x > 0) {
-            jogador.x -= jogador.velocidade;
-            jogador.direcao = 'esquerda';
-        }
-        if (teclado["arrowright"] && jogador.x < canvas.width - jogador.largura) {
-            jogador.x += jogador.velocidade;
-            jogador.direcao = 'direita';
-        }
-        if (teclado["arrowup"] && jogador.y > limiteSuperiorRua) {
-            jogador.y -= jogador.velocidade;
-        }
-        if (teclado["arrowdown"] && jogador.y < limiteInferiorRua - jogador.altura) {
-            jogador.y += jogador.velocidade;
-        }
+// Entidade Base (Jogador e Inimigos)
+class Character {
+    constructor(x, y, color, isPlayer = false) {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 70;
+        this.color = color;
+        this.speed = isPlayer ? 4 : 2;
+        this.vx = 0;
+        this.vy = 0;
+        this.isGrounded = true;
+        this.health = isPlayer ? 100 : 30;
+        this.maxHealth = this.health;
+        this.facing = 1; // 1 = Direita, -1 = Esquerda
+        this.isAttacking = false;
+        this.attackTimer = 0;
+        this.isHit = false;
+        this.hitTimer = 0;
+        this.isPlayer = isPlayer;
     }
 
-    // Timers de animação do herói
-    if (jogador.atacando) {
-        jogador.timerAtaque--;
-        if (jogador.timerAtaque <= 0) {
-            jogador.atacando = false;
-            setTimeout(() => { if (!jogador.atacando) jogador.comboStatus = 0; }, 250);
-        }
-    }
-    if (jogador.estaTomandoDano) {
-        jogador.timerDano--;
-        if (jogador.timerDano <= 0) jogador.estaTomandoDano = false;
-    }
-
-    // IA e Movimento dos Capangas
-    listaInimigos.forEach(inimigo => {
-        inimigo.x += inimigo.velX;
-        inimigo.velX *= 0.85;
-
-        if (inimigo.x < 0) inimigo.x = 0;
-        if (inimigo.x > canvas.width - inimigo.largura) inimigo.x = canvas.width - inimigo.largura;
-
-        if (inimigo.estaTomandoDano) {
-            inimigo.timerDano--;
-            if (inimigo.timerDano <= 0) inimigo.estaTomandoDano = false;
-            return; 
-        }
-
-        // Perseguição em X e Y
-        let alvoX = jogador.x + (inimigo.x > jogador.x ? 40 : -40);
-        if (inimigo.x < alvoX - 5) {
-            inimigo.x += inimigo.velocidade;
-            inimigo.direcao = 'direita';
-        } else if (inimigo.x > alvoX + 5) {
-            inimigo.x -= inimigo.velocidade;
-            inimigo.direcao = 'esquerda';
-        }
-
-        if (inimigo.y < jogador.y) {
-            inimigo.y += inimigo.velocidade;
-        } else if (inimigo.y > jogador.y) {
-            inimigo.y -= inimigo.velocidade;
-        }
-
-        // Sistema de ataque do inimigo
-        let distX = Math.abs(inimigo.x - jogador.x);
-        let distY = Math.abs(inimigo.y - jogador.y);
-
-        if (distX < 55 && distY < 15 && !inimigo.atacando && !jogador.estaTomandoDano) {
-            inimigo.atacando = true;
-            inimigo.timerAtaque = 25;
-            
-            jogador.vida -= 8;
-            jogador.estaTomandoDano = true;
-            jogador.timerDano = 15;
-            jogador.velX = inimigo.direcao === 'direita' ? 8 : -8;
-
-            if (jogador.vida <= 0) {
-                jogador.vida = 0;
-                statusJogo = "gameover";
+    update() {
+        // Gravidade
+        if (!this.isGrounded) {
+            this.vy += game.gravity;
+            this.y += this.vy;
+            if (this.y >= game.floorY - this.height) {
+                this.y = game.floorY - this.height;
+                this.vy = 0;
+                this.isGrounded = true;
             }
         }
 
-        if (inimigo.atacando) {
-            inimigo.timerAtaque--;
-            if (inimigo.timerAtaque <= 0) inimigo.atacando = false;
+        // Recuperação de dano
+        if (this.isHit) {
+            this.hitTimer--;
+            if (this.hitTimer <= 0) this.isHit = false;
         }
-    });
 
-    listaInimigos = listaInimigos.filter(i => i.vida > 0);
-
-    if (listaInimigos.length === 0) {
-        if (faseAtual < totalFases) {
-            faseAtual++;
-            carregarFase(faseAtual);
-        } else {
-            statusJogo = "vitoria";
+        // Ataque temporizado
+        if (this.isAttacking) {
+            this.attackTimer--;
+            if (this.attackTimer <= 0) this.isAttacking = false;
         }
     }
-}
 
-// Processamento de Socos e Knockback
-function processarAtaqueJogador() {
-    listaInimigos.forEach(inimigo => {
-        let alcanceSoco = 65;
-        let acertouHorizontal = false;
+    draw() {
+        ctx.save();
         
-        if (jogador.direcao === 'direita' && inimigo.x > jogador.x && inimigo.x < jogador.x + jogador.largura + alcanceSoco) {
-            acertouHorizontal = true;
+        // Estilo Neon / Silhueta
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        
+        if (this.isHit) {
+            ctx.fillStyle = '#ffffff';
+        } else {
+            ctx.fillStyle = this.color;
         }
-        if (jogador.direcao === 'esquerda' && inimigo.x < jogador.x && inimigo.x > jogador.x - alcanceSoco) {
-            acertouHorizontal = true;
+
+        // Corpo principal
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // Olhos estilizados (direção)
+        ctx.fillStyle = '#000';
+        const eyeOffset = this.facing === 1 ? this.width - 12 : 4;
+        ctx.fillRect(this.x + eyeOffset, this.y + 12, 8, 5);
+
+        // Desenhar braço atacando
+        if (this.isAttacking) {
+            ctx.fillStyle = this.color;
+            const punchX = this.facing === 1 ? this.x + this.width : this.x - 20;
+            ctx.fillRect(punchX, this.y + 20, 20, 10);
         }
 
-        let acertouProfundidade = Math.abs(jogador.y - inimigo.y) < 22;
+        ctx.restore();
+    }
 
-        if (acertouHorizontal && acertouProfundidade) {
-            inimigo.estaTomandoDano = true;
-            inimigo.timerDano = 18;
+    jump() {
+        if (this.isGrounded) {
+            this.vy = -12;
+            this.isGrounded = false;
+        }
+    }
 
-            let ladoEmpurrão = jogador.direcao === 'direita' ? 1 : -1;
-            
-            if (jogador.comboStatus === 3) {
-                inimigo.vida -= 22;
-                inimigo.velX = ladoEmpurrão * 20; // Super soco joga longe
-            } else {
-                inimigo.vida -= 12;
-                inimigo.velX = ladoEmpurrão * 8;
-            }
+    attack() {
+        if (!this.isAttacking && !this.isHit) {
+            this.isAttacking = true;
+            this.attackTimer = 15; // Duração do soco em frames
+            return true;
+        }
+        return false;
+    }
+
+    takeDamage(amount, knockbackDir) {
+        if (this.isHit) return;
+        this.health -= amount;
+        this.isHit = true;
+        this.hitTimer = 20;
+        this.x += knockbackDir * 15; // Pequeno empurrão ao levar dano
+        if (this.health < 0) this.health = 0;
+    }
+}
+
+// Inicializar Jogador
+const player = new Character(100, game.floorY - 70, '#00f0ff', true);
+
+// Lista de Inimigos
+const enemies = [];
+
+function spawnEnemy() {
+    const side = Math.random() > 0.5 ? canvas.width + 20 : -50;
+    const colors = ['#ff0055', '#ff9900', '#aa00ff'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const enemy = new Character(side, game.floorY - 70, randomColor, false);
+    enemy.health = 20 + game.wave * 5; // Inimigos ficam mais fortes a cada wave
+    enemies.push(enemy);
+}
+
+// Escuta das teclas pressionadas
+window.addEventListener('keydown', (e) => {
+    if (game.gameOver && e.key.toLowerCase() === 'r') {
+        restartGame();
+        return;
+    }
+    if (e.key in keys) keys[e.key] = true;
+    if (e.key === 'z' || e.key === 'Z') {
+        if (player.attack()) {
+            checkHits();
+        }
+    }
+    if (e.key === 'x' || e.key === 'X') player.jump();
+});
+
+window.addEventListener('keyup', (e) => {
+    if (e.key in keys) keys[e.key] = false;
+});
+
+function checkHits() {
+    // Área de alcance do soco do jogador
+    const attackRange = 25;
+    const attackBox = {
+        y: player.y,
+        height: player.height,
+        x: player.facing === 1 ? player.x + player.width : player.x - attackRange,
+        width: attackRange
+    };
+
+    enemies.forEach(enemy => {
+        if (
+            attackBox.x < enemy.x + enemy.width &&
+            attackBox.x + attackBox.width > enemy.x &&
+            attackBox.y < enemy.y + enemy.height &&
+            attackBox.y + attackBox.height > enemy.y
+        ) {
+            enemy.takeDamage(10, player.facing);
+            if (enemy.health <= 0) game.score += 100;
         }
     });
 }
 
-// Renderização dos Personagens Estilizados em Emojis
-function desenharSprite(p, tipo) {
-    ctx.save();
-    
-    // Inverte o lado para onde o personagem está olhando
-    if (p.direcao === 'esquerda') {
-        ctx.translate(p.x + p.largura/2, p.y + p.altura/2);
-        ctx.scale(-1, 1);
-        ctx.translate(-(p.x + p.largura/2), -(p.y + p.altura/2));
-    }
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    
-    let centroX = p.x + p.largura / 2;
-    let centroY = p.y + p.altura / 2;
-
-    if (tipo === 'jogador') {
-        // --- DESIGN DO JOGADOR ---
-        if (p.estaTomandoDano) {
-            ctx.font = "45px Arial";
-            ctx.fillText("🤕", centroX, centroY); // Rosto machucado
-        } else if (p.atacando) {
-            ctx.font = "45px Arial";
-            ctx.fillText("🥷", centroX, centroY); // Base ninja
-            ctx.font = "24px Arial";
-            // Desenha a luva de boxe estendida no soco
-            if (p.comboStatus === 3) {
-                ctx.fillText("🥊", centroX + 25, centroY - 20); // Gancho pra cima
-            } else {
-                ctx.fillText("🥊", centroX + 32, centroY + 5);  // Soco direto
-            }
-        } else {
-            // Visual em repouso pronto para a luta
-            ctx.font = "45px Arial";
-            ctx.fillText("🥷", centroX, centroY);
-            ctx.font = "18px Arial";
-            ctx.fillText("🥊", centroX + 18, centroY + 12);
-        }
-    } else {
-        // --- DESIGN DOS INIMIGOS ---
-        if (p.estaTomandoDano) {
-            ctx.font = "45px Arial";
-            ctx.fillText("💥", centroX, centroY - 10); // Efeito de explosão do golpe
-            ctx.font = "42px Arial";
-            ctx.fillText("😵", centroX, centroY); 
-        } else if (p.atacando) {
-            ctx.font = "42px Arial";
-            ctx.fillText("🧌", centroX, centroY);
-            ctx.font = "22px Arial";
-            ctx.fillText("🪓", centroX + 25, centroY); // Arma do capanga
-        } else {
-            ctx.font = "42px Arial";
-            ctx.fillText("🧌", centroX, centroY); // Visual padrão do monstro punk
-        }
-    }
-
-    ctx.restore();
+function restartGame() {
+    player.health = 100;
+    player.x = 100;
+    player.y = game.floorY - player.height;
+    enemies.length = 0;
+    game.score = 0;
+    game.wave = 1;
+    game.gameOver = false;
 }
 
-// Renderização Geral das Telas e Cenário Neon
-function renderizarJogo() {
+// Loop Principal do Jogo
+function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Cenário Urbano Retro/Neon
-    ctx.fillStyle = "#0a0b12"; 
-    ctx.fillRect(0, 0, canvas.width, limiteSuperiorRua);
-    ctx.fillStyle = "#161322"; 
-    ctx.fillRect(0, limiteSuperiorRua, canvas.width, canvas.height - limiteSuperiorRua);
+    // --- CENÁRIO DE FUNDO ---
+    // Prédios estilizados (Silhuetas)
+    ctx.fillStyle = '#222230';
+    ctx.fillRect(50, 100, 120, 300);
+    ctx.fillRect(250, 50, 160, 350);
+    ctx.fillRect(500, 150, 100, 250);
+    ctx.fillRect(680, 80, 100, 320);
 
-    // Linha do horizonte Neon Rosa
-    ctx.strokeStyle = "#ff007f";
-    ctx.lineWidth = 3;
+    // Chão neon
+    ctx.fillStyle = '#0d0d13';
+    ctx.fillRect(0, game.floorY, canvas.width, canvas.height - game.floorY);
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(0, limiteSuperiorRua);
-    ctx.lineTo(canvas.width, limiteSuperiorRua);
+    ctx.moveTo(0, game.floorY);
+    ctx.lineTo(canvas.width, game.floorY);
     ctx.stroke();
 
-    // Linhas de perspectiva de rua
-    ctx.strokeStyle = "rgba(255, 0, 127, 0.1)";
-    ctx.lineWidth = 2;
-    for (let i = -200; i <= canvas.width + 200; i += 100) {
-        ctx.beginPath();
-        ctx.moveTo(i, limiteSuperiorRua);
-        ctx.lineTo(i + (i - canvas.width/2) * 0.8, canvas.height);
-        ctx.stroke();
+    if (!game.gameOver) {
+        // Movimento do Jogador
+        player.vx = 0;
+        if (keys.ArrowLeft) {
+            player.vx = -player.speed;
+            player.facing = -1;
+        }
+        if (keys.ArrowRight) {
+            player.vx = player.speed;
+            player.facing = 1;
+        }
+        player.x += player.vx;
+        
+        // Limites da tela para o jogador
+        if (player.x < 0) player.x = 0;
+        if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+
+        player.update();
+
+        // Gerenciar Waves e Inimigos
+        if (enemies.length === 0) {
+            game.wave++;
+            for (let i = 0; i < game.wave + 1; i++) {
+                setTimeout(spawnEnemy, i * 800);
+            }
+        }
+
+        // Lógica dos Inimigos
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            
+            if (enemy.health <= 0) {
+                enemies.splice(i, 1);
+                continue;
+            }
+
+            // IA Simples: Anda em direção ao jogador
+            if (!enemy.isHit && !enemy.isAttacking) {
+                if (enemy.x < player.x - 25) {
+                    enemy.x += enemy.speed;
+                    enemy.facing = 1;
+                } else if (enemy.x > player.x + 25) {
+                    enemy.x -= enemy.speed;
+                    enemy.facing = -1;
+                } else {
+                    // Ataca aleatoriamente se estiver perto
+                    if (Math.random() < 0.05) {
+                        enemy.attack();
+                        if (!player.isHit && Math.abs(player.y - enemy.y) < 20) {
+                            player.takeDamage(15, enemy.facing);
+                            if (player.health <= 0) {
+                                game.gameOver = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            enemy.update();
+            enemy.draw();
+        }
+
+        player.draw();
+
+    } else {
+        // Tela de Game Over
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.font = '40px Courier New';
+        ctx.fillStyle = '#ff0055';
+        ctx.textAlign = 'center';
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.font = '20px Courier New';
+        ctx.fillStyle = '#fff';
+        ctx.fillText("Pressione R para Recomeçar", canvas.width / 2, canvas.height / 2 + 30);
     }
 
-    // 2. Renderizar Entidades Ordenadas por Profundidade (Y)
+    // --- INTERFACE (HUD) ---
+    // Barra de Vida
+    ctx.fillStyle = '#333';
+    ctx.fillRect(20, 20, 200, 20);
+    ctx.fillStyle = '#00f0ff';
+    ctx.fillRect(20, 20, (player.health / 100) * 200, 20);
+    ctx.font = '14px Courier New';
+    ctx.fillStyle = '#fff';
+    ctx.fillText("PLAYER", 20, 15);
+
+    // Pontuação e Waves
+    ctx.textAlign = 'right';
+    ctx.fillText(`SCORE: ${game.score}`, canvas.width - 20, 30);
+    ctx.fillText(`WAVE: ${game.wave - 1}`, canvas.width - 20, 50);
+    ctx.textAlign = 'left'; // Reset
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Iniciar
+for (let i = 0; i < 2; i++) spawnEnemy();
+gameLoop();
