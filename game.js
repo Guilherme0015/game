@@ -10,7 +10,7 @@ let qtdItens = 0;
 let faseAtual = 1;
 let velocidade = 4;
 
-// Posições iniciais horizontais
+// Posições iniciais bem definidas fora da tela de colisão (50px-90px)
 let obstaculoX = 600;
 let itemX = 800; 
 
@@ -24,41 +24,40 @@ document.addEventListener('keydown', function(event) {
 function pular() {
     if (!personagem.classList.contains('pulo')) {
         personagem.classList.add('pulo');
-        // Remove a classe após o término da animação do CSS (600ms)
         setTimeout(() => {
             personagem.classList.remove('pulo');
         }, 600);
     }
 }
 
-// Loop principal do jogo executado a cada frame
 function loopJogo() {
     if (!jogando) return;
 
     // Movimentação do obstáculo
     obstaculoX -= velocidade;
     if (obstaculoX < -30) {
-        obstaculoX = 600 + Math.random() * 200; // Gera posição aleatória fora da tela
+        obstaculoX = 600 + Math.random() * 200;
     }
     obstaculo.style.left = obstaculoX + 'px';
 
     // Movimentação do item
     itemX -= velocidade;
     if (itemX < -30) {
-        itemX = 700 + Math.random() * 300; // Gera posição aleatória fora da tela
-        item.style.display = 'block'; // Mostra o item novamente na tela
+        itemX = 700 + Math.random() * 300;
+        item.style.display = 'block';
     }
     item.style.left = itemX + 'px';
 
-    // Coleta a altura atual do personagem (pulo)
+    // Pega a altura do personagem em tempo real
     let personagemBottom = parseFloat(window.getComputedStyle(personagem).getPropertyValue('bottom'));
     
-    // 1. Detecção de colisão com o Obstáculo (Fim de jogo)
+    // Detecção precisa de colisão com o Obstáculo
     if (obstaculoX > 50 && obstaculoX < 90 && personagemBottom < 45) {
         gameOver();
+        return; // Interrompe o loop imediatamente
     }
 
-    // 2. Detecção de colisão com o Item (Coleta)
+    // Detecção de colisão com o Item
     if (itemX > 50 && itemX < 90 && personagemBottom > 60 && item.style.display !== 'none') {
         item.style.display = 'none';
         coletarItem();
@@ -69,14 +68,11 @@ function loopJogo() {
 
 function coletarItem() {
     qtdItens++;
-    
-    // Avança de fase ao coletar 5 itens
     if (qtdItens >= 5) {
         faseAtual++;
         qtdItens = 0;
-        velocidade += 1.5; // Deixa o jogo mais rápido e difícil
+        velocidade += 1.5;
     }
-
     txtFase.innerText = faseAtual;
     txtItens.innerText = qtdItens;
 }
@@ -99,8 +95,9 @@ function reiniciarJogo() {
     msgGameOver.style.display = 'none';
     item.style.display = 'block';
     
+    // Reinicia o fluxo de frames
     loopJogo();
 }
 
-// Inicializa o jogo automaticamente ao carregar
+// Inicialização segura
 loopJogo();

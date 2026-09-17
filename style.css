@@ -50,7 +50,7 @@ body {
 #obstaculo {
     position: absolute;
     bottom: 0;
-    right: -30px;
+    left: 600px; /* Começa fora da tela para evitar colisão imediata */
     width: 25px;
     height: 45px;
     background-color: #333;
@@ -60,7 +60,7 @@ body {
 #item {
     position: absolute;
     bottom: 100px;
-    right: -30px;
+    left: 800px; /* Começa fora da tela para evitar colisão imediata */
     width: 20px;
     height: 20px;
     background-color: #FFD700;
@@ -68,15 +68,17 @@ body {
 }
 
 #mensagem-gameover {
-    display: none;
+    display: none; /* Mantém oculto até o jogo realmente acabar */
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     padding: 20px;
     border-radius: 8px;
     text-align: center;
+    width: 200px;
+    z-index: 10;
 }
 
 #mensagem-gameover button {
