@@ -3,311 +3,326 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Hill Climber 2D</title>
+    <title>Jogo de Saltar Obstáculos - Pro Cyber</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            background-color: #0b0c10;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
+            background-color: #0b0c10;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
             overflow: hidden;
             user-select: none;
         }
-        #hud {
-            position: absolute;
-            top: 20px;
-            display: flex;
-            gap: 40px;
-            font-size: 20px;
+
+        /* Painel de pontuação moderno */
+        #placar {
+            margin-bottom: 20px;
+            font-size: 22px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px 30px;
-            border-radius: 30px;
-            border: 1px solid rgba(0, 210, 255, 0.2);
+            letter-spacing: 2px;
             text-shadow: 0 0 10px #00d2ff;
-            z-index: 5;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
         }
-        .valor {
+
+        #fase, #itens {
             color: #00d2ff;
         }
-        #combustivel-barra {
-            width: 120px;
-            height: 16px;
-            background: #222;
-            border-radius: 8px;
-            display: inline-block;
-            vertical-align: middle;
-            border: 1px solid #ff0055;
+
+        /* Cenário Neon */
+        #cenario {
+            position: relative;
+            width: 600px;
+            height: 250px;
+            background: linear-gradient(180deg, #1f1f38 0%, #0d0d1a 100%);
+            border-bottom: 12px solid #00ff88;
             overflow: hidden;
-            margin-left: 8px;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2), inset 0 0 40px rgba(0,0,0,0.6);
+            cursor: pointer;
         }
-        #combustivel-preenchimento {
+
+        /* Estrelas de fundo piscando */
+        .fundo-efeito {
+            position: absolute;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, #ff0055, #ff00aa);
-            box-shadow: 0 0 10px #ff0055;
-            transition: width 0.1s linear;
+            background-image: radial-gradient(white 1px, transparent 0);
+            background-size: 40px 40px;
+            opacity: 0.15;
         }
-        #game-canvas {
-            background: linear-gradient(180deg, #0f0f1a 0%, #05050a 100%);
-            border-radius: 16px;
-            box-shadow: 0 0 40px rgba(0, 210, 255, 0.15);
-            max-width: 100%;
+
+        /* Personagem Cyber Neon */
+        #personagem {
+            position: absolute;
+            bottom: 0;
+            left: 50px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff007f, #ff0055);
+            border-radius: 8px;
+            box-shadow: 0 0 15px #ff007f, inset 0 0 8px rgba(255,255,255,0.6);
+            transform-origin: center bottom;
         }
-        #controles {
-            margin-top: 15px;
-            font-size: 13px;
-            color: #666;
-            text-align: center;
-            line-height: 1.6;
+
+        /* Obstáculo: Espinho */
+        #obstaculo {
+            position: absolute;
+            bottom: 0;
+            left: 600px;
+            width: 25px;
+            height: 45px;
+            background: linear-gradient(0deg, #ff3333, #ff0000);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            filter: drop-shadow(0px 0px 8px #ff3333);
         }
-        code {
-            background: #222;
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #ff0055;
+
+        /* Item: Estrela */
+        #item {
+            position: absolute;
+            bottom: 110px;
+            left: 800px;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #ffe600, #ffb300);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            filter: drop-shadow(0 0 8px #ffe600);
+            animation: girarItem 2s linear infinite;
         }
-        #gameover-screen {
+
+        /* Menu de Game Over */
+        #mensagem-gameover {
             display: none;
             position: absolute;
-            background: rgba(10, 10, 20, 0.95);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 25, 0.95);
             border: 2px solid #ff0055;
-            padding: 30px;
-            border-radius: 20px;
+            padding: 25px;
+            border-radius: 16px;
             text-align: center;
-            box-shadow: 0 0 40px rgba(255, 0, 85, 0.4);
+            width: 280px;
             z-index: 10;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.4);
         }
-        #gameover-screen h2 {
+
+        #mensagem-gameover h2 {
             color: #ff0055;
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 26px;
+            margin-bottom: 8px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        #gameover-screen p {
+
+        #mensagem-gameover p {
+            font-size: 14px;
             color: #ccc;
-            margin-bottom: 20px;
         }
-        #btn-reiniciar {
-            padding: 12px 30px;
+
+        #mensagem-gameover button {
+            margin-top: 18px;
+            padding: 10px 20px;
             background: linear-gradient(90deg, #00ff88, #00b361);
             color: #000;
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
             text-transform: uppercase;
             box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
             transition: transform 0.2s;
         }
-        #btn-reiniciar:hover {
+
+        #mensagem-gameover button:hover {
             transform: scale(1.05);
+        }
+
+        #instrucoes {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        #instrucoes code {
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #00d2ff;
+        }
+
+        @keyframes girarItem {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
-    <div id="hud">
-        <div>Distância: <span id="txt-distancia" class="valor">0</span>m</div>
-        <div>Moedas: <span id="txt-moedas" class="valor">0</span></div>
-        <div>Gasolina: <div id="combustivel-barra"><div id="combustivel-preenchimento"></div></div></div>
+    <div id="placar">FASE: <span id="fase">1</span> &nbsp;|&nbsp; ITENS: <span id="itens">0</span>/5</div>
+
+    <div id="cenario">
+        <div class="fundo-efeito"></div>
+        <div id="personagem"></div>
+        <div id="obstaculo"></div>
+        <div id="item"></div>
+
+        <div id="mensagem-gameover">
+            <h2>Game Over</h2>
+            <p>Você colidiu com o espinho!</p>
+            <button id="btn-reiniciar">Jogar Novamente</button>
+        </div>
     </div>
 
-    <canvas id="game-canvas" width="800" height="450"></canvas>
-
-    <div id="gameover-screen">
-        <h2 id="titulo-perdeu">Capotou!</h2>
-        <p id="motivo-perdeu">O motorista quebrou o pescoço.</p>
-        <button id="btn-reiniciar">Tentar Novamente</button>
-    </div>
-
-    <div id="controles">
-        Use as setas do teclado:<br>
-        <code>Seta Direita (→)</code> Acelerar &nbsp;|&nbsp; <code>Seta Esquerda (←)</code> Frear / Inclinar para trás<br>
-        <em>No celular: toque e segure no lado direito ou esquerdo da tela.</em>
-    </div>
+    <div id="instrucoes">Segure <code>Espaço</code>, <code>Seta para Cima</code> ou o <code>Clique</code> para pular mais alto.</div>
 
 <script>
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
+window.addEventListener('load', () => {
+    const personagem = document.getElementById('personagem');
+    const obstaculo = document.getElementById('obstaculo');
+    const item = document.getElementById('item');
+    const txtFase = document.getElementById('fase');
+    const txtItens = document.getElementById('itens');
+    const msgGameOver = document.getElementById('mensagem-gameover');
+    const btnReiniciar = document.getElementById('btn-reiniciar');
+    const cenario = document.getElementById('cenario');
 
-const txtDistancia = document.getElementById('txt-distancia');
-const txtMoedas = document.getElementById('txt-moedas');
-const combPreenchimento = document.getElementById('combustivel-preenchimento');
-const screenGameOver = document.getElementById('gameover-screen');
-const btnReiniciar = document.getElementById('btn-reiniciar');
-const lblTituloPerdeu = document.getElementById('titulo-perdeu');
-const lblMotivoPerdeu = document.getElementById('motivo-perdeu');
+    let jogando = true;
+    let qtdItens = 0;
+    let faseAtual = 1;
+    let velocidadeGeral = 5;
+    let obstaculoX = 600;
+    let itemX = 900;
 
-let jogando = true;
-let moedas = 0;
-let distanciaMax = 0;
-let combustivel = 100;
+    // Variáveis da física baseada em JavaScript
+    let personagemY = 0;
+    let velocidadeY = 0;
+    const gravidade = 0.6;
+    const forcaPuloInicial = 11;
+    let pressionandoPulo = false;
+    let noChao = true;
+    let anguloRotacao = 0;
 
-let keys = { ArrowRight: false, ArrowLeft: false };
-const larguraSegmento = 15;
-
-function obterAlturaTerreno(x) {
-    let a = Math.sin(x * 0.003) * 100;
-    let b = Math.sin(x * 0.01) * 35;
-    let c = Math.cos(x * 0.001) * 150;
-    let d = Math.sin(x * 0.04) * 8; 
-    return 320 + a + b + c + d;
-}
-
-let itensMapa = [];
-function gerarItensParaTrecho(inicioX, fimX) {
-    for (let x = inicioX; x < fimX; x += 180) {
-        if (x < 300) continue; 
-        let tipo = Math.random() > 0.75 ? 'gasolina' : 'moeda';
-        let y = obterAlturaTerreno(x) - 40;
-        itensMapa.push({ x, y, tipo, coletado: false });
-    }
-}
-gerarItensParaTrecho(0, 3000);
-
-let carro = {
-    x: 150,
-    y: 200,
-    vx: 0,
-    vy: 0,
-    angulo: 0,
-    vAngulo: 0,
-    raioRoda: 15,
-    rodaFrente: { relX: 25, relY: 15, x: 0, y: 0 },
-    rodaTras: { relX: -25, relY: 15, x: 0, y: 0 }
-};
-
-function resetFisicaCarro() {
-    carro.x = 150;
-    carro.y = 150;
-    carro.vx = 0;
-    carro.vy = 0;
-    carro.angulo = 0;
-    carro.vAngulo = 0;
-    combustivel = 100;
-    distanciaMax = 0;
-    itensMapa.forEach(i => i.coletado = false);
-}
-
-window.addEventListener('keydown', (e) => { if (e.key in keys) keys[e.key] = true; });
-window.addEventListener('keyup', (e) => { if (e.key in keys) keys[e.key] = false; });
-
-canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    if (clickX > canvas.width / 2) keys.ArrowRight = true;
-    else keys.ArrowLeft = true;
-});
-window.addEventListener('mouseup', () => { keys.ArrowRight = false; keys.ArrowLeft = false; });
-
-canvas.addEventListener('touchstart', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const clickX = e.touches[0].clientX - rect.left;
-    if (clickX > canvas.width / 2) keys.ArrowRight = true;
-    else keys.ArrowLeft = true;
-});
-window.addEventListener('touchend', () => { keys.ArrowRight = false; keys.ArrowLeft = false; });
-
-btnReiniciar.addEventListener('click', () => {
-    resetFisicaCarro();
-    screenGameOver.style.display = 'none';
-    jogando = true;
-    loop();
-});
-
-function loop() {
-    if (!jogando) return;
-    atualizarFisica();
-    desenhar();
-    requestAnimationFrame(loop);
-}
-
-function atualizarFisica() {
-    if (keys.ArrowRight) {
-        carro.vx += 0.18 * Math.cos(carro.angulo);
-        carro.vy += 0.18 * Math.sin(carro.angulo);
-        carro.vAngulo += 0.004; 
-        combustivel -= 0.15;
-    } else if (keys.ArrowLeft) {
-        carro.vx -= 0.12 * Math.cos(carro.angulo);
-        carro.vAngulo -= 0.006; 
-        combustivel -= 0.05;
-    }
-
-    combustivel -= 0.02;
-    combPreenchimento.style.width = Math.max(0, combustivel) + '%';
-
-    if (combustivel <= 0) {
-        gameOver("Combustível Acabou!", "Seu tanque esvaziou nas colinas.");
-    }
-
-    carro.vy += 0.25;
-    carro.x += carro.vx;
-    carro.y += carro.vy;
-    carro.angulo += carro.vAngulo;
-
-    carro.vx *= 0.985;
-    carro.vAngulo *= 0.95;
-
-    let cos = Math.cos(carro.angulo);
-    let sin = Math.sin(carro.angulo);
-
-    carro.rodaFrente.x = carro.x + (carro.rodaFrente.relX * cos - carro.rodaFrente.relY * sin);
-    carro.rodaFrente.y = carro.y + (carro.rodaFrente.relX * sin + carro.rodaFrente.relY * cos);
-
-    carro.rodaTras.x = carro.x + (carro.rodaTras.relX * cos - carro.rodaTras.relY * sin);
-    carro.rodaTras.y = carro.y + (carro.rodaTras.relX * sin + carro.rodaTras.relY * cos);
-
-    processarSuspensaoRoda(carro.rodaFrente);
-    processarSuspensaoRoda(carro.rodaTras);
-
-    let chaoFrenteY = obterAlturaTerreno(carro.rodaFrente.x) - carro.raioRoda;
-    let chaoTrasY = obterAlturaTerreno(carro.rodaTras.x) - carro.raioRoda;
-
-    if (carro.rodaFrente.y >= chaoFrenteY && carro.rodaTras.y >= chaoTrasY) {
-        let anguloAlvo = Math.atan2(chaoFrenteY - chaoTrasY, carro.rodaFrente.x - carro.rodaTras.x);
-        carro.angulo = carro.angulo * 0.7 + anguloAlvo * 0.3; 
-    }
-
-    let distAtual = Math.floor(carro.x / 10);
-    if (distAtual > distanciaMax) {
-        distanciaMax = distAtual;
-        txtDistancia.innerText = distanciaMax;
-    }
-
-    let degrees = (carro.angulo * 180 / Math.PI) % 360;
-    if (Math.abs(degrees) > 95 && Math.abs(degrees) < 265) {
-        let chaoChassisY = obterAlturaTerreno(carro.x);
-        if (carro.y > chaoChassisY - 20) {
-            gameOver("Capotou!", "O piloto quebrou o pescoço na batida.");
+    // Funções de controle do pulo
+    function iniciarPulo() {
+        if (jogando && noChao) {
+            velocidadeY = forcaPuloInicial;
+            noChao = false;
+            pressionandoPulo = true;
         }
     }
 
-    itensMapa.forEach(item => {
-        if (!item.coletado && Math.abs(carro.x - item.x) < 40 && Math.abs(carro.y - item.y) < 40) {
-            item.coletado = true;
-            if (item.tipo === 'moeda') {
-                moedas += 5;
-                txtMoedas.innerText = moedas;
-            } else if (item.tipo === 'gasolina') {
-                combustivel = Math.min(100, combustivel + 45); 
-            }
+    function finalizarPulo() {
+        pressionandoPulo = false;
+    }
+
+    // Controles por teclado
+    window.addEventListener('keydown', (e) => {
+        if ((e.code === 'Space' || e.code === 'ArrowUp') && jogando) {
+            e.preventDefault();
+            iniciarPulo();
+        }
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            finalizarPulo();
         }
     });
 
-    if (carro.x > itensMapa[itensMapa.length - 1].x - 1000) {
-        let ultX = itensMapa[itensMapa.length - 1].x;
-        gerarItensParaTrecho(ultX, ultX + 3000);
+    // Controles por clique do mouse
+    cenario.addEventListener('mousedown', (e) => {
+        if (e.target !== btnReiniciar) iniciarPulo();
+    });
+    window.addEventListener('mouseup', finalizarPulo);
+
+    // Controles por toque em celulares
+    cenario.addEventListener('touchstart', (e) => {
+        if (e.target !== btnReiniciar) {
+            e.preventDefault();
+            iniciarPulo();
+        }
+    }, { passive: false });
+    window.addEventListener('touchend', finalizarPulo);
+
+    // Evento do botão reiniciar
+    btnReiniciar.addEventListener('click', (event) => {
+        event.stopPropagation();
+        reiniciarJogo();
+    });
+
+    // Função de colisão precisa por Hitbox
+    function verificarColisao(obj1, obj2, margemX = 0, margemY = 0) {
+        const r1 = obj1.getBoundingClientRect();
+        const r2 = obj2.getBoundingClientRect();
+
+        return !(
+            r1.right - margemX < r2.left + margemX ||
+            r1.left + margemX > r2.right - margemX ||
+            r1.bottom - margemY < r2.top + margemY ||
+            r1.top + margemY > r2.bottom - margemY
+        );
     }
+
+    function loopJogo() {
+        if (!jogando) return;
+
+        // Física do pulo variável (segurar para pular mais alto)
+        if (!noChao) {
+            if (!pressionandoPulo && velocidadeY > 3) {
+                velocidadeY = 3; 
+            }
+            
+            velocidadeY -= gravidade;
+            personagemY += velocidadeY;
+
+            anguloRotacao += 4;
+            personagem.style.transform = `rotate(${anguloRotacao}deg) scale(1)`;
+        }
+
+        // Detecção de contato com o chão
+        if (personagemY <= 0) {
+            personagemY = 0;
+            velocidadeY = 0;
+            if (!noChao) {
+                noChao = true;
+                anguloRotacao = 0;
+                // Animação de impacto (Achatamento rápido)
+                personagem.style.transform = 'scaleY(0.75) scaleX(1.2)';
+                setTimeout(() => {
+                    if(noChao) personagem.style.transform = 'scale(1)';
+                }, 80);
+            }
+        }
+        personagem.style.bottom = personagemY + 'px';
+
+        // Animação de esticar ao subir rapidamente
+        if (!noChao && velocidadeY > 2) {
+            personagem.style.transform = `rotate(${anguloRotacao}deg) scaleY(1.15) scaleX(0.85)`;
+        }
+
+        // Movimentação do obstáculo
+        obstaculoX -= velocidadeGeral;
+        if (obstaculoX < -40) {
+            obstaculoX = 650 + Math.random() * 300;
+        }
+        obstaculo.style.left = obstaculoX + 'px';
+
+        // Movimentação do item
+        itemX -= velocidadeGeral;
+        if (itemX < -40) {
