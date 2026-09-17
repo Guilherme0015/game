@@ -156,8 +156,6 @@ let distanciaMax = 0;
 let combustivel = 100;
 
 let keys = { ArrowRight: false, ArrowLeft: false };
-
-const pontosTerreno = [];
 const larguraSegmento = 15;
 
 function obterAlturaTerreno(x) {
@@ -186,10 +184,9 @@ let carro = {
     vy: 0,
     angulo: 0,
     vAngulo: 0,
-    massa: 1,
     raioRoda: 15,
-    rodaFrente: { relX: 25, relY: 15, yOriginal: 15, x: 0, y: 0, vy: 0 },
-    rodaTras: { relX: -25, relY: 15, yOriginal: 15, x: 0, y: 0, vy: 0 }
+    rodaFrente: { relX: 25, relY: 15, x: 0, y: 0 },
+    rodaTras: { relX: -25, relY: 15, x: 0, y: 0 }
 };
 
 function resetFisicaCarro() {
@@ -217,7 +214,7 @@ window.addEventListener('mouseup', () => { keys.ArrowRight = false; keys.ArrowLe
 
 canvas.addEventListener('touchstart', (e) => {
     const rect = canvas.getBoundingClientRect();
-    const clickX = e.touches.clientX - rect.left;
+    const clickX = e.touches[0].clientX - rect.left;
     if (clickX > canvas.width / 2) keys.ArrowRight = true;
     else keys.ArrowLeft = true;
 });
@@ -290,8 +287,8 @@ function atualizarFisica() {
         txtDistancia.innerText = distanciaMax;
     }
 
-    let graus = (carro.angulo * 180 / Math.PI) % 360;
-    if (Math.abs(graus) > 95 && Math.abs(graus) < 265) {
+    let degrees = (carro.angulo * 180 / Math.PI) % 360;
+    if (Math.abs(degrees) > 95 && Math.abs(degrees) < 265) {
         let chaoChassisY = obterAlturaTerreno(carro.x);
         if (carro.y > chaoChassisY - 20) {
             gameOver("Capotou!", "O piloto quebrou o pescoço na batida.");
@@ -311,3 +308,6 @@ function atualizarFisica() {
     });
 
     if (carro.x > itensMapa[itensMapa.length - 1].x - 1000) {
+        let ultX = itensMapa[itensMapa.length - 1].x;
+        gerarItensParaTrecho(ultX, ultX + 3000);
+    }
