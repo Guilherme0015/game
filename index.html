@@ -3,19 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Alley Fight</title>
+    <title>Jogo de Saltar Obstáculos</title>
+    <!-- Vincula o arquivo CSS externo -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>NEON ALLEY FIGHT</h1>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
-    </div>
-    <div class="instructions">
-        Controles: Mover <span class="key">←</span> <span class="key">→</span> | Soco <span class="key">Z</span> | Pular <span class="key">X</span>
+    <div id="placar">Fase: <span id="fase">1</span> | Itens: <span id="itens">0</span>/5</div>
+
+    <div id="cenario">
+        <div id="personagem"></div>
+        <div id="obstaculo"></div>
+        <div id="item"></div>
+
+        <div id="mensagem-gameover">
+            <h2>Game Over!</h2>
+            <p>Você bateu no obstáculo.</p>
+            <button onclick="reiniciarJogo()">Jogar Novamente</button>
+        </div>
     </div>
 
-    <script src="game.js"></script>
+    <div id="instrucoes">Pressione a tecla <strong>Espaço</strong> ou <strong>Seta para Cima</strong> para pular.</div>
+
+    <!-- Vincula o arquivo JavaScript externo -->
+    <script href="script.js" src="script.js"></script>
 </body>
 </html>
