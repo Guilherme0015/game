@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jogo de Saltar Obstáculos - Pro Cyber</title>
+    <title>Jogo de Saltar Obstáculos - Cyber Edition</title>
     <style>
         * {
             margin: 0;
@@ -42,7 +42,7 @@
             color: #00d2ff;
         }
 
-        /* Cenário Neon */
+        /* Cenário com efeito Neon e Gradiente Animado */
         #cenario {
             position: relative;
             width: 600px;
@@ -65,7 +65,7 @@
             opacity: 0.15;
         }
 
-        /* Personagem Cyber Neon */
+        /* Personagem: Cubo Cyber Neon com sombra interna */
         #personagem {
             position: absolute;
             bottom: 0;
@@ -75,10 +75,15 @@
             background: linear-gradient(135deg, #ff007f, #ff0055);
             border-radius: 8px;
             box-shadow: 0 0 15px #ff007f, inset 0 0 8px rgba(255,255,255,0.6);
-            transform-origin: center bottom;
+            transition: bottom 0.1s ease-out;
         }
 
-        /* Obstáculo: Espinho */
+        /* Animação do Pulo (Suavizada) */
+        .pulo {
+            animation: pular 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Obstáculo: Espinho de energia cônico */
         #obstaculo {
             position: absolute;
             bottom: 0;
@@ -87,13 +92,14 @@
             height: 45px;
             background: linear-gradient(0deg, #ff3333, #ff0000);
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            box-shadow: 0 0 15px #ff3333;
             filter: drop-shadow(0px 0px 8px #ff3333);
         }
 
-        /* Item: Estrela */
+        /* Item: Estrela de Ouro Brilhante */
         #item {
             position: absolute;
-            bottom: 110px;
+            bottom: 100px;
             left: 800px;
             width: 24px;
             height: 24px;
@@ -103,7 +109,7 @@
             animation: girarItem 2s linear infinite;
         }
 
-        /* Menu de Game Over */
+        /* Tela de Game Over estilizada */
         #mensagem-gameover {
             display: none;
             position: absolute;
@@ -145,13 +151,15 @@
             font-size: 14px;
             text-transform: uppercase;
             box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         #mensagem-gameover button:hover {
             transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.6);
         }
 
+        /* Instruções de jogo discretas */
         #instrucoes {
             margin-top: 20px;
             font-size: 13px;
@@ -167,9 +175,19 @@
             color: #00d2ff;
         }
 
+        /* Animações CSS */
+        @keyframes pular {
+            0% { bottom: 0; transform: scaleY(1); }
+            10% { transform: scaleY(0.85); } /* Efeito de compressão ao pegar impulso */
+            50% { bottom: 140px; transform: scaleY(1) rotate(45deg); } /* Gira levemente no ar */
+            90% { transform: scaleY(0.9); }
+            100% { bottom: 0; transform: scaleY(1) rotate(0deg); }
+        }
+
         @keyframes girarItem {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.15); } /* Pulsa levemente enquanto gira */
+            100% { transform: rotate(360deg) scale(1); }
         }
     </style>
 </head>
@@ -190,7 +208,7 @@
         </div>
     </div>
 
-    <div id="instrucoes">Segure <code>Espaço</code>, <code>Seta para Cima</code> ou o <code>Clique</code> para pular mais alto.</div>
+    <div id="instrucoes">Pressione <code>Espaço</code>, <code>Seta para Cima</code> ou <code>Clique no cenário</code> para saltar.</div>
 
 <script>
 window.addEventListener('load', () => {
@@ -206,123 +224,105 @@ window.addEventListener('load', () => {
     let jogando = true;
     let qtdItens = 0;
     let faseAtual = 1;
-    let velocidadeGeral = 5;
+    let velocidade = 5;
     let obstaculoX = 600;
     let itemX = 900;
 
-    // Variáveis da física baseada em JavaScript
-    let personagemY = 0;
-    let velocidadeY = 0;
-    const gravidade = 0.6;
-    const forcaPuloInicial = 11;
-    let pressionandoPulo = false;
-    let noChao = true;
-    let anguloRotacao = 0;
-
-    // Funções de controle do pulo
-    function iniciarPulo() {
-        if (jogando && noChao) {
-            velocidadeY = forcaPuloInicial;
-            noChao = false;
-            pressionandoPulo = true;
-        }
-    }
-
-    function finalizarPulo() {
-        pressionandoPulo = false;
-    }
-
-    // Controles por teclado
-    window.addEventListener('keydown', (e) => {
-        if ((e.code === 'Space' || e.code === 'ArrowUp') && jogando) {
-            e.preventDefault();
-            iniciarPulo();
-        }
-    });
-    window.addEventListener('keyup', (e) => {
-        if (e.code === 'Space' || e.code === 'ArrowUp') {
-            finalizarPulo();
+    window.addEventListener('keydown', (event) => {
+        if ((event.code === 'Space' || event.code === 'ArrowUp') && jogando) {
+            event.preventDefault();
+            pular();
         }
     });
 
-    // Controles por clique do mouse
-    cenario.addEventListener('mousedown', (e) => {
-        if (e.target !== btnReiniciar) iniciarPulo();
-    });
-    window.addEventListener('mouseup', finalizarPulo);
-
-    // Controles por toque em celulares
-    cenario.addEventListener('touchstart', (e) => {
-        if (e.target !== btnReiniciar) {
-            e.preventDefault();
-            iniciarPulo();
+    cenario.addEventListener('click', (event) => {
+        if (jogando && event.target !== btnReiniciar) {
+            pular();
         }
-    }, { passive: false });
-    window.addEventListener('touchend', finalizarPulo);
+    });
 
-    // Evento do botão reiniciar
     btnReiniciar.addEventListener('click', (event) => {
         event.stopPropagation();
         reiniciarJogo();
     });
 
-    // Função de colisão precisa por Hitbox
-    function verificarColisao(obj1, obj2, margemX = 0, margemY = 0) {
-        const r1 = obj1.getBoundingClientRect();
-        const r2 = obj2.getBoundingClientRect();
-
-        return !(
-            r1.right - margemX < r2.left + margemX ||
-            r1.left + margemX > r2.right - margemX ||
-            r1.bottom - margemY < r2.top + margemY ||
-            r1.top + margemY > r2.bottom - margemY
-        );
+    function pular() {
+        if (!personagem.classList.contains('pulo')) {
+            personagem.classList.add('pulo');
+            setTimeout(() => {
+                personagem.classList.remove('pulo');
+            }, 550); // Ajustado para bater com o tempo da nova animação CSS
+        }
     }
 
     function loopJogo() {
         if (!jogando) return;
 
-        // Física do pulo variável (segurar para pular mais alto)
-        if (!noChao) {
-            if (!pressionandoPulo && velocidadeY > 3) {
-                velocidadeY = 3; 
-            }
-            
-            velocidadeY -= gravidade;
-            personagemY += velocidadeY;
-
-            anguloRotacao += 4;
-            personagem.style.transform = `rotate(${anguloRotacao}deg) scale(1)`;
-        }
-
-        // Detecção de contato com o chão
-        if (personagemY <= 0) {
-            personagemY = 0;
-            velocidadeY = 0;
-            if (!noChao) {
-                noChao = true;
-                anguloRotacao = 0;
-                // Animação de impacto (Achatamento rápido)
-                personagem.style.transform = 'scaleY(0.75) scaleX(1.2)';
-                setTimeout(() => {
-                    if(noChao) personagem.style.transform = 'scale(1)';
-                }, 80);
-            }
-        }
-        personagem.style.bottom = personagemY + 'px';
-
-        // Animação de esticar ao subir rapidamente
-        if (!noChao && velocidadeY > 2) {
-            personagem.style.transform = `rotate(${anguloRotacao}deg) scaleY(1.15) scaleX(0.85)`;
-        }
-
         // Movimentação do obstáculo
-        obstaculoX -= velocidadeGeral;
+        obstaculoX -= velocidade;
         if (obstaculoX < -40) {
-            obstaculoX = 650 + Math.random() * 300;
+            obstaculoX = 650 + Math.random() * 250;
         }
         obstaculo.style.left = obstaculoX + 'px';
 
         // Movimentação do item
-        itemX -= velocidadeGeral;
+        itemX -= velocidade;
         if (itemX < -40) {
+            itemX = 750 + Math.random() * 350;
+            item.style.display = 'block';
+        }
+        item.style.left = itemX + 'px';
+
+        // Detecção de altura em tempo real
+        let personagemBottom = parseFloat(window.getComputedStyle(personagem).getPropertyValue('bottom')) || 0;
+
+        // Colisão com Obstáculo 
+        if (obstaculoX > 45 && obstaculoX < 85 && personagemBottom < 45) {
+            gameOver();
+            return;
+        }
+
+        // Colisão com o Item
+        if (itemX > 45 && itemX < 85 && personagemBottom > 60 && item.style.display !== 'none') {
+            item.style.display = 'none';
+            coletarItem();
+        }
+
+        requestAnimationFrame(loopJogo);
+    }
+
+    function coletarItem() {
+        qtdItens++;
+        if (qtdItens >= 5) {
+            faseAtual++;
+            qtdItens = 0;
+            velocidade += 1.5;
+        }
+        txtFase.innerText = faseAtual;
+        txtItens.innerText = qtdItens;
+    }
+
+    function gameOver() {
+        jogando = false;
+        msgGameOver.style.display = 'block';
+    }
+
+    function reiniciarJogo() {
+        jogando = true;
+        qtdItens = 0;
+        faseAtual = 1;
+        velocidade = 5;
+        obstaculoX = 600;
+        itemX = 900;
+        txtFase.innerText = faseAtual;
+        txtItens.innerText = qtdItens;
+        msgGameOver.style.display = 'none';
+        item.style.display = 'block';
+        loopJogo();
+    }
+
+    loopJogo();
+});
+</script>
+</body>
+</html>
