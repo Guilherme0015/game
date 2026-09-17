@@ -10,13 +10,26 @@ let qtdItens = 0;
 let faseAtual = 1;
 let velocidade = 4;
 
-// Posições iniciais bem definidas fora da tela de colisão (50px-90px)
+// Posições iniciais horizontais fora da área do personagem
 let obstaculoX = 600;
 let itemX = 800; 
 
-// Captura comandos do teclado
+// Força a janela a focar no jogo assim que ele carrega para os comandos funcionarem de primeira
+window.focus();
+
+// 1. Comando por Teclado (Espaço ou Seta para Cima)
 document.addEventListener('keydown', function(event) {
     if ((event.code === 'Space' || event.code === 'ArrowUp') && jogando) {
+        // Evita que a barra de espaço role a página para baixo
+        event.preventDefault(); 
+        pular();
+    }
+});
+
+// 2. Comando por Clique do Mouse ou Toque na Tela (Celular/Tablet)
+document.addEventListener('click', function(event) {
+    // Só pula se o jogo estiver rodando e se o usuário NÃO clicou no botão de reiniciar
+    if (jogando && event.target.tagName !== 'BUTTON') {
         pular();
     }
 });
@@ -48,13 +61,13 @@ function loopJogo() {
     }
     item.style.left = itemX + 'px';
 
-    // Pega a altura do personagem em tempo real
+    // Captura a altura do personagem em tempo real
     let personagemBottom = parseFloat(window.getComputedStyle(personagem).getPropertyValue('bottom'));
     
-    // Detecção precisa de colisão com o Obstáculo
+    // Detecção de colisão com o Obstáculo
     if (obstaculoX > 50 && obstaculoX < 90 && personagemBottom < 45) {
         gameOver();
-        return; // Interrompe o loop imediatamente
+        return; 
     }
 
     // Detecção de colisão com o Item
@@ -95,9 +108,10 @@ function reiniciarJogo() {
     msgGameOver.style.display = 'none';
     item.style.display = 'block';
     
-    // Reinicia o fluxo de frames
+    // Devolve o foco para a janela ao reiniciar
+    window.focus();
     loopJogo();
 }
 
-// Inicialização segura
+// Inicializa o jogo automaticamente
 loopJogo();
