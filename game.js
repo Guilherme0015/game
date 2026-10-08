@@ -66,6 +66,7 @@ window.addEventListener('load', () => {
     function inicializarFase() {
         if (idAnimacaoLoop) {
             cancelAnimationFrame(idAnimacaoLoop);
+            idAnimacaoLoop = null;
         }
         
         jogando = true;
@@ -114,7 +115,7 @@ window.addEventListener('load', () => {
                 m.style.left = '1000px';
                 m.style.bottom = tipoAlto ? '20px' : '110px';
                 cenario.appendChild(m);
-                listaMoedas.push({ elemento: m, x: 1000, y: tipoAlto ? 20 : 110 });
+                listaMoedas.push({ elemento: m, x: 1000, y: tipoAlto ? 20 : 110, coletada: false });
             }
 
             proximoSpawnObstaculo += 300 + Math.random() * 250;
@@ -130,7 +131,6 @@ window.addEventListener('load', () => {
         let pct = Math.floor((progressoFase / tamanhoFase) * 100);
         txtDistancia.innerText = Math.min(pct, 100);
 
-        // Física do Pulo corrigida
         if (yPersonagem > 0 || velocidadeY !== 0) {
             velocidadeY -= gravidade;
             yPersonagem += velocidadeY;
@@ -177,7 +177,7 @@ window.addEventListener('load', () => {
             }
         }
 
-        // Processar Moedas
+        // Processar Moedas (Corrigido com flag .coletada estável)
         for (let i = listaMoedas.length - 1; i >= 0; i--) {
             let moeda = listaMoedas[i];
             moeda.x -= velAtual;
@@ -186,9 +186,10 @@ window.addEventListener('load', () => {
             let pLargura = estahAgachado ? 50 : 30;
             let pAltura = estahAgachado ? 25 : 55;
             
-            if (moeda.x > 80 && moeda.x < 80 + pLargura && 
+            if (!moeda.coletada && moeda.x > 80 && moeda.x < 80 + pLargura && 
                 moeda.y > yPersonagem && moeda.y < yPersonagem + pAltura) {
                 
+                moeda.coletada = true;
                 moedasColetadas++;
                 txtMoedas.innerText = moedasColetadas;
                 moeda.elemento.remove();
@@ -217,7 +218,10 @@ window.addEventListener('load', () => {
 
     function finalizarJogo(vitoria) {
         jogando = false;
-        if (idAnimacaoLoop) cancelAnimationFrame(idAnimacaoLoop);
+        if (idAnimacaoLoop) {
+            cancelAnimationFrame(idAnimacaoLoop);
+            idAnimacaoLoop = null;
+        }
         
         if (vitoria) {
             telaVitoria.style.display = 'block';
