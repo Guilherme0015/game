@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vector Runner - Cyber Parkour Edition</title>
+    <title>Vector Parkour - VS Code Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,18 +14,17 @@
         <div class="placar-box">MOEDAS: <span id="moedas">0</span></div>
     </div>
 
-    <div id="cenario">
-        <div class="silhouette-bg"></div>
-        <div id="personagem"></div>
-        <div id="linha-chegada"></div>
+    <div id="jogo-container">
+        <canvas id="gameCanvas" width="800" height="320"></canvas>
 
-        <!-- Telas de Estado -->
+        <!-- Tela de Game Over -->
         <div id="tela-gameover" class="overlay-tela">
             <h2>Capturado!</h2>
-            <p>O obstáculo te parou.</p>
+            <p>O obstáculo parou sua corrida.</p>
             <button id="btn-reiniciar">Tentar Novamente</button>
         </div>
 
+        <!-- Tela de Vitória -->
         <div id="tela-vitoria" class="overlay-tela">
             <h2>Fase Concluída!</h2>
             <p>Seu parkour foi perfeito.</p>
@@ -35,9 +34,10 @@
 
     <div id="instrucoes">
         Pule barreiras com: <code>Espaço</code> ou <code>Seta para Cima</code> <br>
-        Deslize sob tetos altos com: <code>Seta para Baixo</code>
+        Deslize sob tetos com: <code>Seta para Baixo</code>
     </div>
 
-    <script src="script.js"></script>
+    <!-- O defer garante a execução apenas após a renderização completa do DOM -->
+    <script src="script.js" defer></script>
 </body>
 </html>

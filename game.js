@@ -1,6 +1,8 @@
-window.addEventListener('load', () => {
-    const personagem = document.getElementById('personagem');
-    const cenario = document.getElementById('cenario');
+// Aguarda o carregamento completo da janela para mapear o DOM com segurança
+window.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
     const txtFase = document.getElementById('fase');
     const txtDistancia = document.getElementById('distancia');
     const txtMoedas = document.getElementById('moedas');
@@ -8,212 +10,263 @@ window.addEventListener('load', () => {
     const telaVitoria = document.getElementById('tela-vitoria');
     const btnReiniciar = document.getElementById('btn-reiniciar');
     const btnProximo = document.getElementById('btn-proximo');
-    const linhaChegada = document.getElementById('linha-chegada');
 
-    // Configurações do Motor Vector
-    let jogando = false; 
+    // Estados do Motor do Jogo
+    let jogando = false;
     let idAnimacaoLoop = null;
     let faseAtual = 1;
     let moedasColetadas = 0;
     let progressoFase = 0;
     const tamanhoFase = 3000; 
-    
-    // Física do Personagem
-    let yPersonagem = 0;
-    let velocidadeY = 0;
-    const gravidade = 1.2;
-    const forcaPulo = 17;
-    let estahAgachado = false;
+    let velocidade = 7;
 
-    // Listas dinâmicas de renderização
-    let listaObstaculos = [];
-    let listaMoedas = [];
-    let proximoSpawnObstaculo = 400;
+    const alturaChao = 40;
+    const yChao = canvas.height - alturaChao;
 
-    function obterVelocidade() {
-        return 6 + (faseAtual * 1.5);
-    }
+    // Estrutura física do Atleta (Silhueta)
+    const jogador = {
+        x: 100,
+        y: 0,
+        largura: 30,
+        alturaOriginal: 60,
+        altura: 60,
+        velocidadeY: 0,
+        gravidade: 1.0,
+        forcaPulo: -16,
+        noChao: true,
+        deslizando: false
+    };
 
-    // Input do teclado
+    let obstaculos = [];
+    let moedas = [];
+    let timerSpawn = 0;
+
+    // Escuta de comandos nativa do teclado
+    const teclas = {};
     window.addEventListener('keydown', (e) => {
-        if (!jogando) return;
-        
-        if ((e.code === 'Space' || e.code === 'ArrowUp') && yPersonagem === 0 && !estahAgachado) {
-            e.preventDefault();
-            velocidadeY = forcaPulo;
-            personagem.classList.add('pulo');
-        }
-        if (e.code === 'ArrowDown' && yPersonagem === 0) {
-            e.preventDefault();
-            estahAgachado = true;
-            personagem.classList.add('slide');
+        teclas[e.code] = true;
+        if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) {
+            e.preventDefault(); 
         }
     });
-
     window.addEventListener('keyup', (e) => {
-        if (e.code === 'ArrowDown') {
-            estahAgachado = false;
-            personagem.classList.remove('slide');
-        }
+        teclas[e.code] = false;
     });
 
-    function limparCenariodeItens() {
-        document.querySelectorAll('.obstaculo-chao, .obstaculo-alto, .moeda').forEach(el => el.remove());
-        listaObstaculos = [];
-        listaMoedas = [];
-    }
-
-    function inicializarFase() {
+    function iniciarFase() {
         if (idAnimacaoLoop) {
             cancelAnimationFrame(idAnimacaoLoop);
             idAnimacaoLoop = null;
         }
-        
+
         jogando = true;
         progressoFase = 0;
-        yPersonagem = 0;
-        velocidadeY = 0;
-        estahAgachado = false;
-        proximoSpawnObstaculo = 500;
+        velocidade = 6 + (faseAtual * 1.2);
+        timerSpawn = 0;
         
-        personagem.className = '';
-        personagem.style.bottom = '0px';
-        linhaChegada.style.display = 'none';
-        
-        telaGameOver.style.display = 'none';
-        telaVitoria.style.display = 'none';
-        
+        jogador.altura = jogador.alturaOriginal;
+        jogador.y = yChao - jogador.altura;
+        jogador.velocidadeY = 0;
+        jogador.noChao = true;
+        jogador.deslizando = false;
+
+        obstaculos = [];
+        moedas = [];
+
         txtFase.innerText = faseAtual;
         txtMoedas.innerText = moedasColetadas;
-        limparCenariodeItens();
-        
-        idAnimacaoLoop = requestAnimationFrame(loopJogo);
+        txtDistancia.innerText = "0";
+
+        telaGameOver.style.display = 'none';
+        telaVitoria.style.display = 'none';
+
+        // Dispara o loop estável de atualização gráfica
+        idAnimacaoLoop = requestAnimationFrame(loop);
     }
 
     function spawnarElementos() {
-        if (progressoFase > tamanhoFase - 800) return;
+        if (progressoFase > tamanhoFase - 600) return;
 
-        if (progressoFase >= proximoSpawnObstaculo) {
+        timerSpawn++;
+        if (timerSpawn > (75 - faseAtual) + Math.random() * 40) {
+            timerSpawn = 0;
             const tipoAlto = Math.random() > 0.5;
-            const obs = document.createElement('div');
-            
+
             if (tipoAlto) {
-                obs.className = 'obstaculo-alto';
-                obs.style.left = '850px';
-                cenario.appendChild(obs);
-                listaObstaculos.push({ elemento: obs, x: 800, tipo: 'alto', largura: 60, altura: 240 });
+                obstaculos.push({
+                    x: canvas.width,
+                    y: 0,
+                    largura: 50,
+                    altura: yChao - 55,
+                    tipo: 'alto',
+                    ativo: true
+                });
+                moedas.push({
+                    x: canvas.width + 15,
+                    y: yChao - 20,
+                    raio: 8,
+                    ativo: true
+                });
             } else {
-                obs.className = 'obstaculo-chao';
-                obs.style.left = '850px';
-                cenario.appendChild(obs);
-                listaObstaculos.push({ elemento: obs, x: 800, tipo: 'chao', largura: 30, altura: 40 });
+                obstaculos.push({
+                    x: canvas.width,
+                    y: yChao - 40,
+                    largura: 30,
+                    altura: 40,
+                    tipo: 'chao',
+                    ativo: true
+                });
+                moedas.push({
+                    x: canvas.width + 6,
+                    y: yChao - 110,
+                    raio: 8,
+                    ativo: true
+                });
             }
-
-            if (Math.random() > 0.3) {
-                const m = document.createElement('div');
-                m.className = 'moeda';
-                m.style.left = '1000px';
-                m.style.bottom = tipoAlto ? '20px' : '110px';
-                cenario.appendChild(m);
-                listaMoedas.push({ elemento: m, x: 1000, y: tipoAlto ? 20 : 110, coletada: false });
-            }
-
-            proximoSpawnObstaculo += 300 + Math.random() * 250;
         }
     }
 
-    function loopJogo() {
+    function atualizar() {
         if (!jogando) return;
 
-        const velAtual = obterVelocidade();
-        progressoFase += velAtual;
-
+        progressoFase += velocidade;
         let pct = Math.floor((progressoFase / tamanhoFase) * 100);
         txtDistancia.innerText = Math.min(pct, 100);
 
-        if (yPersonagem > 0 || velocidadeY !== 0) {
-            velocidadeY -= gravidade;
-            yPersonagem += velocidadeY;
-
-            if (yPersonagem <= 0) {
-                yPersonagem = 0;
-                velocidadeY = 0;
-                personagem.classList.remove('pulo');
-            }
-            personagem.style.bottom = yPersonagem + 'px';
+        // Ações de Pulo
+        if ((teclas['Space'] || teclas['ArrowUp']) && jogador.noChao && !jogador.deslizando) {
+            jogador.velocidadeY = jogador.forcaPulo;
+            jogador.noChao = false;
         }
 
-        // Processar Obstáculos
-        for (let i = listaObstaculos.length - 1; i >= 0; i--) {
-            let obs = listaObstaculos[i];
-            obs.x -= velAtual;
-            obs.elemento.style.left = obs.x + 'px';
-
-            let pLargura = estahAgachado ? 50 : 30;
-            let pAltura = estahAgachado ? 25 : 55;
-            let pEsquerda = 80;
-            let pDireita = pEsquerda + pLargura;
-            let pBaixo = yPersonagem;
-            let pTopo = yPersonagem + pAltura;
-
-            let oEsquerda = obs.x;
-            let oDireita = obs.x + obs.largura;
-            
-            if (obs.tipo === 'chao') {
-                if (pDireita > oEsquerda && pEsquerda < oDireita && pBaixo < obs.altura) {
-                    finalizarJogo(false);
-                    return;
-                }
-            } else if (obs.tipo === 'alto') {
-                if (pDireita > oEsquerda && pEsquerda < oDireita && pTopo > 80) {
-                    finalizarJogo(false);
-                    return;
-                }
-            }
-
-            if (obs.x < -100) {
-                obs.elemento.remove();
-                listaObstaculos.splice(i, 1);
+        // Ações de Deslizar
+        if (teclas['ArrowDown'] && jogador.noChao) {
+            jogador.deslizando = true;
+            jogador.altura = 25;
+            jogador.y = yChao - jogador.altura;
+        } else {
+            if (jogador.deslizando) {
+                jogador.deslizando = false;
+                jogador.altura = jogador.alturaOriginal;
+                jogador.y = yChao - jogador.altura;
             }
         }
 
-        // Processar Moedas (Corrigido com flag .coletada estável)
-        for (let i = listaMoedas.length - 1; i >= 0; i--) {
-            let moeda = listaMoedas[i];
-            moeda.x -= velAtual;
-            moeda.elemento.style.left = moeda.x + 'px';
+        // Simulação da gravidade
+        if (!jogador.noChao) {
+            jogador.velocidadeY += jogador.gravidade;
+            jogador.y += jogador.velocidadeY;
 
-            let pLargura = estahAgachado ? 50 : 30;
-            let pAltura = estahAgachado ? 25 : 55;
-            
-            if (!moeda.coletada && moeda.x > 80 && moeda.x < 80 + pLargura && 
-                moeda.y > yPersonagem && moeda.y < yPersonagem + pAltura) {
+            if (jogador.y >= yChao - jogador.altura) {
+                jogador.y = yChao - jogador.altura;
+                jogador.velocidadeY = 0;
+                jogador.noChao = true;
+            }
+        }
+
+        spawnarElementos();
+
+        // Movimentação e colisão de obstáculos
+        for (let i = 0; i < obstaculos.length; i++) {
+            let obs = obstaculos[i];
+            obs.x -= velocidade;
+
+            if (jogador.x < obs.x + obs.largura &&
+                jogador.x + jogador.largura > obs.x &&
+                jogador.y < obs.y + obs.altura &&
+                jogador.y + jogador.altura > obs.y) {
                 
-                moeda.coletada = true;
-                moedasColetadas++;
-                txtMoedas.innerText = moedasColetadas;
-                moeda.elemento.remove();
-                listaMoedas.splice(i, 1);
-            } else if (moeda.x < -50) {
-                moeda.elemento.remove();
-                listaMoedas.splice(i, 1);
-            }
-        }
-
-        if (progressoFase >= tamanhoFase) {
-            linhaChegada.style.display = 'block';
-            let xChegada = 800 - (progressoFase - tamanhoFase);
-            linhaChegada.style.left = xChegada + 'px';
-
-            if (xChegada <= 80) {
-                finalizarJogo(true);
+                finalizarJogo(false);
                 return;
             }
-        } else {
-            spawnarElementos();
+
+            if (obs.x + obs.largura < 0) {
+                obs.ativo = false;
+            }
+        }
+        obstaculos = obstaculos.filter(obs => obs.ativo);
+
+        // Movimentação e colisão de moedas
+        for (let i = 0; i < moedas.length; i++) {
+            let m = moedas[i];
+            m.x -= velocidade;
+
+            if (jogador.x < m.x + m.raio &&
+                jogador.x + jogador.largura > m.x - m.raio &&
+                jogador.y < m.y + m.raio &&
+                jogador.y + jogador.altura > m.y - m.raio) {
+                
+                m.ativo = false;
+                moedasColetadas++;
+                txtMoedas.innerText = moedasColetadas;
+            }
+
+            if (m.x + m.raio < 0) {
+                m.ativo = false;
+            }
+        }
+        moedas = moedas.filter(m => m.ativo);
+
+        if (progressoFase >= tamanhoFase) {
+            finalizarJogo(true);
+        }
+    }
+
+    function desenhar() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Cidade ao fundo (Parallax)
+        ctx.fillStyle = "rgba(25, 30, 41, 0.4)";
+        for (let i = 0; i < canvas.width + 80; i += 80) {
+            let desc = (i % 3 === 0) ? 120 : 160;
+            ctx.fillRect(i - (progressoFase * 0.2 % 80), canvas.height - desc, 60, desc);
         }
 
-        idAnimacaoLoop = requestAnimationFrame(loopJogo);
+        // Linha do chão Neon
+        ctx.fillStyle = "#161920";
+        ctx.fillRect(0, yChao, canvas.width, alturaChao);
+        ctx.fillStyle = "#00d2ff";
+        ctx.fillRect(0, yChao, canvas.width, 3);
+
+        // Desenho dos obstáculos
+        obstaculos.forEach(obs => {
+            ctx.fillStyle = "#000000";
+            ctx.strokeStyle = obs.tipo === 'chao' ? "#ff0055" : "#ffcc00";
+            ctx.lineWidth = 2;
+            ctx.fillRect(obs.x, obs.y, obs.largura, obs.altura);
+            ctx.strokeRect(obs.x, obs.y, obs.largura, obs.altura);
+        });
+
+        // Desenho das moedas
+        moedas.forEach(m => {
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.raio, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffe600";
+            ctx.fill();
+        });
+
+        // Faixa de chegada
+        if (progressoFase > tamanhoFase - 500) {
+            let xChegada = canvas.width - (progressoFase - (tamanhoFase - 500));
+            ctx.fillStyle = "#00ff88";
+            ctx.fillRect(xChegada, 0, 15, yChao);
+        }
+
+        // Desenho do Jogador (Silhueta Vector)
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(jogador.x, jogador.y, jogador.largura, jogador.altura);
+
+        // Detalhe Neon Azul no personagem
+        ctx.fillStyle = "#00d2ff";
+        let offsetOlhoY = jogador.deslizando ? 8 : 12;
+        ctx.fillRect(jogador.x + 20, jogador.y + offsetOlhoY, 4, 4);
+    }
+
+    function loop() {
+        if (!jogando) return;
+        atualizar();
+        desenhar();
+        idAnimacaoLoop = requestAnimationFrame(loop);
     }
 
     function finalizarJogo(vitoria) {
@@ -232,14 +285,15 @@ window.addEventListener('load', () => {
 
     btnReiniciar.addEventListener('click', (e) => {
         e.stopPropagation();
-        inicializarFase();
+        iniciarFase();
     });
 
     btnProximo.addEventListener('click', (e) => {
         e.stopPropagation();
         faseAtual++;
-        inicializarFase();
+        iniciarFase();
     });
 
-    inicializarFase();
+    // Inicializa o motor de forma limpa
+    iniciarFase();
 });
