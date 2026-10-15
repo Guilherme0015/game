@@ -243,8 +243,8 @@ function loop() {
     ctx.fillStyle = "#00f0ff";
     ctx.fillRect(jogador.x, jogador.y, jogador.largura, jogador.altura);
 
-    // Aumento suave de dificuldade
-    if (tempo % 600 === 0) velocidad += 0.5;
+    // CORRIGIDO: Aumento suave de dificuldade usando o nome correto da variável
+    if (tempo % 600 === 0) velocidade += 0.5;
 
     // 4. GERENCIAR OBSTÁCULOS
     if (tempo % 130 === 0) criarObstaculo();
