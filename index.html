@@ -2,281 +2,227 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corrida das Estrelas</title>
+    <title>Corrida Neon Simples</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
         body {
-            background-color: #222;
+            margin: 0;
+            background-color: #111;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
             overflow: hidden;
         }
-        #gameContainer {
+        #box {
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         #hud {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            color: white;
+            top: 20px;
+            left: 20px;
+            color: #00f0ff;
             font-size: 20px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px #000;
-            pointer-events: none;
         }
-        #gameOverScreen {
+        #telaFim {
             display: none;
             position: absolute;
             top: 0;
             left: 0;
             width: 800px;
             height: 400px;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-radius: 4px;
         }
-        #gameOverScreen h1 {
-            font-size: 48px;
-            color: #ff4a4a;
+        #telaFim h1 {
+            color: #ff0055;
             margin-bottom: 10px;
         }
-        #gameOverScreen p {
-            font-size: 20px;
-            margin-bottom: 20px;
-        }
-        #gameOverScreen button {
+        #telaFim button {
             padding: 10px 20px;
-            font-size: 18px;
-            font-weight: bold;
-            background-color: #4CAF50;
-            color: white;
+            font-size: 16px;
+            background: #00f0ff;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
-            transition: 0.2s;
-        }
-        #gameOverScreen button:hover {
-            background-color: #45a049;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div id="gameContainer">
-    <div id="hud">Estrelas: <span id="score">0</span></div>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
+<div id="box">
+    <div id="hud">ESTRELAS: <span id="pontos">0</span></div>
+    <canvas id="tela" width="800" height="400"></canvas>
     
-    <div id="gameOverScreen" id="gameOverScreen">
-        <h1>Fim de Jogo!</h1>
-        <p>Você coletou <span id="finalScore">0</span> estrelas.</p>
-        <button onclick="resetGame()">Jogar Novamente</button>
+    <div id="telaFim">
+        <h1>FIM DE JOGO</h1>
+        <p>Você pegou <span id="pontosFinais">0</span> estrelas.</p>
+        <button onclick="reiniciar()">JOGAR DE NOVO</button>
     </div>
 </div>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
+const canvas = document.getElementById("tela");
 const ctx = canvas.getContext("2d");
 
-// Elementos da Interface (DOM)
-const scoreEl = document.getElementById("score");
-const finalScoreEl = document.getElementById("finalScore");
-const gameOverScreen = document.getElementById("gameOverScreen");
+const pontosEl = document.getElementById("pontos");
+const pontosFinaisEl = document.getElementById("pontosFinais");
+const telaFim = document.getElementById("telaFim");
 
-// Configurações do Jogo
-let gameSpeed = 5;
+let velocidade = 5;
 let score = 0;
-let isGameOver = false;
-let frames = 0;
+let fim = false;
+let tempo = 0;
+const chaoY = 340;
 
-// Propriedades do Chão
-const groundY = canvas.height - 50;
-
-// Objeto do Jogador (Quadrado Azul)
-const player = {
+const jogador = {
     x: 100,
-    y: groundY - 40,
-    width: 30,
-    height: 40,
-    color: "#00b4d8",
-    velocityY: 0,
-    gravity: 0.6,
-    jumpForce: -14,
-    isGrounded: false
+    y: 300,
+    largura: 30,
+    altura: 40,
+    velY: 0,
+    gravidade: 0.6,
+    forcaPulo: -13,
+    noChao: false
 };
 
-// Listas de objetos na tela
-let obstacles = [];
-let stars = [];
+let obstaculos = [];
+let estrelas = [];
 
-// Captura de comandos (Espaço, Seta para Cima ou Toque na Tela)
-window.addEventListener("keydown", (e) => {
-    if ((e.code === "Space" || e.code === "ArrowUp") && player.isGrounded && !isGameOver) {
-        player.velocityY = player.jumpForce;
-        player.isGrounded = false;
-    }
-});
-canvas.addEventListener("touchstart", () => {
-    if (player.isGrounded && !isGameOver) {
-        player.velocityY = player.jumpForce;
-        player.isGrounded = false;
+window.addEventListener("keydown", function(e) {
+    if ((e.code === "Space" || e.code === "ArrowUp") && jogador.noChao && !fim) {
+        jogador.velY = jogador.forcaPulo;
+        jogador.noChao = false;
     }
 });
 
-// Função para gerar obstáculos aleatórios
-function spawnObstacle() {
-    let size = Math.floor(Math.random() * 30) + 20; // tamanhos variados
-    obstacles.push({
+function criarObstaculo() {
+    let tam = Math.floor(Math.random() * 25) + 20;
+    obstaculos.push({
         x: canvas.width,
-        y: groundY - size,
-        width: size,
-        height: size,
-        color: "#e63946"
+        y: chaoY - tam,
+        largura: tam,
+        altura: tam
     });
 }
 
-// Função para gerar estrelas coletáveis
-function spawnStar() {
-    let heightVariation = Math.floor(Math.random() * 120) + 50; // alturas diferentes
-    stars.push({
+function criarEstrela() {
+    let alt = Math.floor(Math.random() * 100) + 60;
+    estrelas.push({
         x: canvas.width,
-        y: groundY - heightVariation,
-        size: 12,
-        color: "#ffbe0b"
+        y: chaoY - alt,
+        raio: 8
     });
 }
 
-// Detecção de Colisão Estilo AABB (Caixa delimitadora)
-function checkCollision(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
+function colidiu(r1, r2) {
+    return r1.x < r2.x + r2.largura &&
+           r1.x + r1.largura > r2.x &&
+           r1.y < r2.y + r2.altura &&
+           r1.y + r1.altura > r2.y;
 }
 
-// Loop Principal do Jogo
-function gameLoop() {
-    if (isGameOver) return;
+function loop() {
+    if (fim) return;
 
-    frames++;
+    tempo++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // ---- 1. DESENHAR CENÁRIO ----
-    // Fundo do Céu
-    ctx.fillStyle = "#1e1e2f";
+    // Fundo
+    ctx.fillStyle = "#1a1525";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Chão
-    ctx.fillStyle = "#2a9d8f";
-    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
 
-    // ---- 2. FÍSICA E MOVIMENTO DO JOGADOR ----
-    player.velocityY += player.gravity;
-    player.y += player.velocityY;
+    // Chao
+    ctx.fillStyle = "#ff007f";
+    ctx.fillRect(0, chaoY, canvas.width, canvas.height - chaoY);
 
-    // Colisão com o chão
-    if (player.y + player.height >= groundY) {
-        player.y = groundY - player.height;
-        player.velocityY = 0;
-        player.isGrounded = true;
+    // Fisica Jogador
+    jogador.velY += jogador.gravidade;
+    jogador.y += jogador.velY;
+
+    if (jogador.y + jogador.altura >= chaoY) {
+        jogador.y = chaoY - jogador.altura;
+        jogador.velY = 0;
+        jogador.noChao = true;
     }
 
-    // Desenhar Jogador
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Desenhar Jogador (Ciano)
+    ctx.fillStyle = "#00f0ff";
+    ctx.fillRect(jogador.x, jogador.y, jogador.largura, jogador.altura);
 
-    // Aumentar velocidade gradualmente conforme o tempo passa
-    if (frames % 500 === 0) gameSpeed += 0.5;
+    // Dificuldade gradual
+    if (tempo % 600 === 0) velocidade += 0.5;
 
-    // ---- 3. GERENCIAR OBSTÁCULOS ----
-    if (frames % 120 === 0) spawnObstacle(); // Cria a cada 2 segundos aprox.
+    // Gerenciar Obstaculos
+    if (tempo % 130 === 0) criarObstaculo();
 
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        let obs = obstacles[i];
-        obs.x -= gameSpeed;
+    for (let i = obstaculos.length - 1; i >= 0; i--) {
+        let obs = obstaculos[i];
+        obs.x -= velocidade;
 
-        // Desenhar Obstáculo
-        ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.fillStyle = "#ff0055";
+        ctx.fillRect(obs.x, obs.y, obs.largura, obs.altura);
 
-        // Checar colisão com jogador
-        if (checkCollision(player, obs)) {
-            endGame();
+        if (colidiu(jogador, obs)) {
+            fim = true;
+            pontosFinaisEl.innerText = score;
+            telaFim.style.display = "flex";
         }
 
-        // Remover do array se sair da tela
-        if (obs.x + obs.width < 0) obstacles.splice(i, 1);
+        if (obs.x + obs.largura < 0) obstaculos.splice(i, 1);
     }
 
-    // ---- 4. GERENCIAR ESTRELAS ----
-    if (frames % 80 === 0) spawnStar(); // Cria estrelas de forma alternada
+    // Gerenciar Estrelas
+    if (tempo % 90 === 0) criarEstrela();
 
-    for (let i = stars.length - 1; i >= 0; i--) {
-        let star = stars[i];
-        star.x -= gameSpeed;
+    for (let i = estrelas.length - 1; i >= 0; i--) {
+        let est = estrelas[i];
+        est.x -= velocidade;
 
-        // Desenhar Estrela (Formato simplificado de losango/brilho)
-        ctx.fillStyle = star.color;
+        ctx.fillStyle = "#ffbe0b";
         ctx.beginPath();
-        ctx.moveTo(star.x, star.y - star.size);
-        ctx.lineTo(star.x + star.size, star.y);
-        ctx.lineTo(star.x, star.y + star.size);
-        ctx.lineTo(star.x - star.size, star.y);
-        ctx.closePath();
+        ctx.arc(est.x, est.y, est.raio, 0, Math.PI * 2);
         ctx.fill();
 
-        // Caixa de colisão virtual para a estrela
-        let starBox = { x: star.x - star.size, y: star.y - star.size, width: star.size * 2, height: star.size * 2 };
+        let caixaEstrela = {
+            x: est.x - est.raio,
+            y: est.y - est.raio,
+            largura: est.raio * 2,
+            altura: est.raio * 2
+        };
 
-        // Checar coleta da estrela
-        if (checkCollision(player, starBox)) {
+        if (colidiu(jogador, caixaEstrela)) {
             score++;
-            scoreEl.innerText = score;
-            stars.splice(i, 1);
+            pontosEl.innerText = score;
+            estrelas.splice(i, 1);
             continue;
         }
 
-        // Remover se sair da tela
-        if (star.x + star.size < 0) stars.splice(i, 1);
+        if (est.x + est.raio < 0) estrelas.splice(i, 1);
     }
 
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(loop);
 }
 
-// Finaliza a rodada
-function endGame() {
-    isGameOver = true;
-    finalScoreEl.innerText = score;
-    gameOverScreen.style.display = "flex";
-}
-
-// Reinicia os parâmetros para jogar de novo
-function resetGame() {
-    obstacles = [];
-    stars = [];
+function reiniciar() {
+    obstaculos = [];
+    estrelas = [];
     score = 0;
-    gameSpeed = 5;
-    frames = 0;
-    scoreEl.innerText = score;
-    player.y = groundY - player.height;
-    player.velocityY = 0;
-    isGameOver = false;
-    gameOverScreen.style.display = "none";
-    gameLoop();
+    velocidade = 5;
+    tempo = 0;
+    pontosEl.innerText = "0";
+    jogador.y = chaoY - jogador.altura;
+    jogador.velY = 0;
+    fim = false;
+    telaFim.style.display = "none";
+    loop();
 }
 
-// Iniciar o jogo
-gameLoop();
+loop();
 </script>
 
 </body>
