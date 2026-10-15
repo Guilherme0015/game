@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Corrida Neon Simples</title>
+    <title>Neon Runner - Edicao Especial</title>
     <style>
         body {
             margin: 0;
-            background-color: #111;
+            background-color: #0b0914;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -14,16 +14,20 @@
             font-family: sans-serif;
             overflow: hidden;
         }
-        #box {
+        #caixaJogo {
             position: relative;
+            border: 2px solid #ff007f;
+            border-radius: 8px;
+            overflow: hidden;
         }
         #hud {
             position: absolute;
             top: 20px;
-            left: 20px;
+            left: 25px;
             color: #00f0ff;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
+            letter-spacing: 1px;
         }
         #telaFim {
             display: none;
@@ -32,36 +36,50 @@
             left: 0;
             width: 800px;
             height: 400px;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(11, 9, 20, 0.95);
             color: white;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
         #telaFim h1 {
-            color: #ff0055;
+            color: #ff007f;
+            font-size: 45px;
             margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        #telaFim p {
+            font-size: 18px;
+            color: #00f0ff;
+            margin-bottom: 25px;
         }
         #telaFim button {
-            padding: 10px 20px;
+            padding: 12px 25px;
             font-size: 16px;
-            background: #00f0ff;
-            border: none;
+            background: transparent;
+            color: #ff007f;
+            border: 2px solid #ff007f;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
+            transition: 0.2s;
+        }
+        #telaFim button:hover {
+            background: #ff007f;
+            color: #0b0914;
         }
     </style>
 </head>
 <body>
 
-<div id="box">
-    <div id="hud">ESTRELAS: <span id="pontos">0</span></div>
+<div id="caixaJogo">
+    <div id="hud">SCORE: <span id="pontos">000</span></div>
     <canvas id="tela" width="800" height="400"></canvas>
     
     <div id="telaFim">
-        <h1>FIM DE JOGO</h1>
-        <p>Você pegou <span id="pontosFinais">0</span> estrelas.</p>
-        <button onclick="reiniciar()">JOGAR DE NOVO</button>
+        <h1>G A M E  O V E R</h1>
+        <p>Estrelas Coletadas: <span id="pontosFinais">0</span></p>
+        <button onclick="reiniciar()">REINICIAR SISTEMA</button>
     </div>
 </div>
 
@@ -78,6 +96,19 @@ let score = 0;
 let fim = false;
 let tempo = 0;
 const chaoY = 340;
+
+// Elementos decorativos do cenário detalhado gerados via código simples
+let estrelasFundo = [];
+for (let i = 0; i < 40; i++) {
+    estrelasFundo.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * (chaoY - 100),
+        tamanho: Math.random() * 2
+    });
+}
+
+// Controle do efeito Parallax (Montanhas ao fundo se movendo devagar)
+let montanhasX = 0;
 
 const jogador = {
     x: 100,
@@ -111,11 +142,11 @@ function criarObstaculo() {
 }
 
 function criarEstrela() {
-    let alt = Math.floor(Math.random() * 100) + 60;
+    let alt = Math.floor(Math.random() * 120) + 60;
     estrelas.push({
         x: canvas.width,
         y: chaoY - alt,
-        raio: 8
+        raio: 9
     });
 }
 
@@ -132,15 +163,67 @@ function loop() {
     tempo++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Fundo
-    ctx.fillStyle = "#1a1525";
+    // 1. CENÁRIO DE FUNDO DETALHADO
+    // Gradiente do Céu Espacial
+    let gradienteCeu = ctx.createLinearGradient(0, 0, 0, chaoY);
+    gradienteCeu.addColorStop(0, "#0b0914");
+    gradienteCeu.addColorStop(0.6, "#1a0b2e");
+    gradienteCeu.addColorStop(1, "#31063c");
+    ctx.fillStyle = gradienteCeu;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Chao
-    ctx.fillStyle = "#ff007f";
+    // Desenho das estrelas estáticas piscando sutilmente
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < estrelasFundo.length; i++) {
+        let est = estrelasFundo[i];
+        if (tempo % 10 === 0 && Math.random() > 0.8) ctx.fillStyle = "rgba(255,255,255,0.3)";
+        else ctx.fillStyle = "#ffffff";
+        ctx.fillRect(est.x, est.y, est.tamanho, est.tamanho);
+    }
+
+    // Desenho de um Sol Retrô de linhas ao fundo
+    ctx.fillStyle = "rgba(255, 0, 127, 0.15)";
+    ctx.beginPath();
+    ctx.arc(400, 200, 70, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Montanhas Distantes (Efeito Parallax)
+    montanhasX -= (velocidade * 0.15); // Movem bem mais devagar que o jogo
+    if (montanhasX <= -400) montanhasX = 0;
+    
+    ctx.fillStyle = "#150624";
+    for (let j = 0; j < 4; j++) {
+        let base = montanhasX + (j * 300);
+        ctx.beginPath();
+        ctx.moveTo(base, chaoY);
+        ctx.lineTo(base + 150, chaoY - 80);
+        ctx.lineTo(base + 300, chaoY);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // 2. CHÃO ESTILIZADO COM GRADE NEON
+    ctx.fillStyle = "#050208";
     ctx.fillRect(0, chaoY, canvas.width, canvas.height - chaoY);
 
-    // Fisica Jogador
+    // Linhas horizontais da grade
+    ctx.strokeStyle = "rgba(255, 0, 127, 0.3)";
+    ctx.lineWidth = 1;
+    for (let h = chaoY; h < canvas.height; h += 12) {
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        ctx.lineTo(canvas.width, h);
+        ctx.stroke();
+    }
+    // Linha brilhante do topo do chão
+    ctx.strokeStyle = "#ff007f";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, chaoY);
+    ctx.lineTo(canvas.width, chaoY);
+    ctx.stroke();
+
+    // 3. FÍSICA E DESENHO DO JOGADOR
     jogador.velY += jogador.gravidade;
     jogador.y += jogador.velY;
 
@@ -150,22 +233,33 @@ function loop() {
         jogador.noChao = true;
     }
 
-    // Desenhar Jogador (Ciano)
+    // Rastro simples de luz atrás do jogador
+    if (jogador.noChao) {
+        ctx.fillStyle = "rgba(0, 240, 255, 0.2)";
+        ctx.fillRect(jogador.x - 30, jogador.y + jogador.altura - 8, 30, 6);
+    }
+
+    // Desenhar Jogador (Cubo Neon Ciano)
     ctx.fillStyle = "#00f0ff";
     ctx.fillRect(jogador.x, jogador.y, jogador.largura, jogador.altura);
 
-    // Dificuldade gradual
-    if (tempo % 600 === 0) velocidade += 0.5;
+    // Aumento suave de dificuldade
+    if (tempo % 600 === 0) velocidad += 0.5;
 
-    // Gerenciar Obstaculos
+    // 4. GERENCIAR OBSTÁCULOS
     if (tempo % 130 === 0) criarObstaculo();
 
     for (let i = obstaculos.length - 1; i >= 0; i--) {
         let obs = obstaculos[i];
         obs.x -= velocidade;
 
+        // Obstáculo estilizado (Espinhos vermelhos neon)
         ctx.fillStyle = "#ff0055";
         ctx.fillRect(obs.x, obs.y, obs.largura, obs.altura);
+        
+        // Detalhe interno do bloco
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(obs.x + 4, obs.y + 4, obs.largura - 8, obs.altura - 8);
 
         if (colidiu(jogador, obs)) {
             fim = true;
@@ -176,16 +270,23 @@ function loop() {
         if (obs.x + obs.largura < 0) obstaculos.splice(i, 1);
     }
 
-    // Gerenciar Estrelas
+    // 5. GERENCIAR ESTRELAS
     if (tempo % 90 === 0) criarEstrela();
 
     for (let i = estrelas.length - 1; i >= 0; i--) {
         let est = estrelas[i];
         est.x -= velocidade;
 
+        // Desenhar Estrela como Orbe de Energia Dourada
         ctx.fillStyle = "#ffbe0b";
         ctx.beginPath();
         ctx.arc(est.x, est.y, est.raio, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Núcleo brilhante da estrela
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(est.x, est.y, est.raio * 0.4, 0, Math.PI * 2);
         ctx.fill();
 
         let caixaEstrela = {
@@ -197,7 +298,7 @@ function loop() {
 
         if (colidiu(jogador, caixaEstrela)) {
             score++;
-            pontosEl.innerText = score;
+            pontosEl.innerText = String(score).padStart(3, '0');
             estrelas.splice(i, 1);
             continue;
         }
@@ -214,7 +315,7 @@ function reiniciar() {
     score = 0;
     velocidade = 5;
     tempo = 0;
-    pontosEl.innerText = "0";
+    pontosEl.innerText = "000";
     jogador.y = chaoY - jogador.altura;
     jogador.velY = 0;
     fim = false;
